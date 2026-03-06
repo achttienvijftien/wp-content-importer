@@ -1,0 +1,5 @@
+/vendor/
+
+/docs/
+
+.phpunit.result.cache

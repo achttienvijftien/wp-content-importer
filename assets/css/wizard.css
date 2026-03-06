@@ -1,0 +1,157 @@
+.wci-steps {
+	display: flex;
+	gap: 0;
+	margin-bottom: 20px;
+	border-bottom: 2px solid #c3c4c7;
+	padding-bottom: 0;
+}
+
+.wci-step {
+	padding: 10px 20px;
+	color: #787c82;
+	border-bottom: 2px solid transparent;
+	margin-bottom: -2px;
+	cursor: default;
+}
+
+.wci-step.active {
+	color: #1d2327;
+	border-bottom-color: #2271b1;
+	font-weight: 600;
+}
+
+.wci-step.completed {
+	color: #00a32a;
+	cursor: pointer;
+}
+
+.wci-step.completed:hover {
+	text-decoration: underline;
+}
+
+.wci-panel {
+	max-width: 960px;
+}
+
+/* Data preview */
+.wci-preview-details {
+	margin-bottom: 16px;
+}
+
+.wci-preview-details summary {
+	cursor: pointer;
+	color: #2271b1;
+	font-weight: 600;
+	margin-bottom: 8px;
+}
+
+.wci-preview-details table {
+	font-size: 12px;
+}
+
+.wci-preview-details td,
+.wci-preview-details th {
+	max-width: 150px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Mapping table */
+#wci-mapping-table .wci-target-select {
+	width: 100%;
+	min-width: 200px;
+}
+
+#wci-mapping-table td {
+	vertical-align: top;
+	padding: 8px;
+}
+
+/* Template input */
+.wci-template-wrap {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.wci-template-input {
+	width: 100% !important;
+	font-family: monospace;
+	font-size: 13px;
+}
+
+.wci-template-preview {
+	font-size: 12px;
+	color: #00a32a;
+	font-style: italic;
+	padding: 0 2px;
+}
+
+/* Column insert tags */
+.wci-column-tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+
+.wci-column-tag {
+	display: inline-block;
+	padding: 2px 8px;
+	background: #f0f0f1;
+	border: 1px solid #c3c4c7;
+	border-radius: 3px;
+	font-size: 11px;
+	cursor: pointer;
+	color: #2271b1;
+	line-height: 1.6;
+}
+
+.wci-column-tag:hover {
+	background: #2271b1;
+	color: #fff;
+	border-color: #2271b1;
+}
+
+/* Remove button */
+.wci-remove-row {
+	color: #d63638 !important;
+	border-color: #d63638 !important;
+	min-width: 30px;
+}
+
+.wci-remove-row:hover {
+	background: #d63638 !important;
+	color: #fff !important;
+}
+
+/* Progress bar */
+.wci-progress-bar-wrap {
+	background: #f0f0f1;
+	border-radius: 3px;
+	height: 24px;
+	overflow: hidden;
+	margin: 10px 0;
+}
+
+.wci-progress-bar {
+	background: #2271b1;
+	height: 100%;
+	transition: width 0.3s ease;
+	border-radius: 3px;
+}
+
+/* Status badges */
+.wci-status {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 3px;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.wci-status-draft { background: #f0f0f1; color: #787c82; }
+.wci-status-pending { background: #fcf0e3; color: #996800; }
+.wci-status-processing { background: #e7f5fe; color: #0a4b78; }
+.wci-status-completed, .wci-status-done { background: #edfaef; color: #00a32a; }
+.wci-status-failed { background: #fcf0f1; color: #d63638; }

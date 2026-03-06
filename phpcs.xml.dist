@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<ruleset name="WordPress Coding Standards for wp-content-importer">
+    <description>Sniffs for wp-content-importer</description>
+
+    <arg name="colors"/>
+    <arg value="ps"/>
+    <arg name="extensions" value="php"/>
+
+    <file>./src</file>
+    <file>./wp-content-importer.php</file>
+
+    <rule ref="1815BuildingTechniques"/>
+</ruleset>
