@@ -238,6 +238,33 @@ class RowProcessor {
 			return $post ? $post->ID : null;
 		}
 
+		// Other core post field match — query the posts table directly.
+		if ( in_array( $match_field, self::CORE_FIELDS, true ) ) {
+			$match_value = $post_args[ $match_field ] ?? null;
+
+			if ( ! $match_value ) {
+				return null;
+			}
+
+			global $wpdb;
+
+			$column = sanitize_key( $match_field );
+
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $column is sanitized and validated against CORE_FIELDS whitelist.
+			$post_id = $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT ID FROM {$wpdb->posts} WHERE `{$column}` = %s AND post_type = %s AND post_status != %s LIMIT 1",
+					$match_value,
+					$job->post_type,
+					'trash'
+				)
+			);
+
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+			return $post_id ? (int) $post_id : null;
+		}
+
 		// Meta field match — use mapped data which includes non-core fields.
 		$match_value = isset( $mapped[ $match_field ] ) ? $mapped[ $match_field ]['value'] : null;
 
