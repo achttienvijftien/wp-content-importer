@@ -77,11 +77,16 @@ if ( ! empty( $job_data['post_type'] ) ) {
 						<?php selected( $job_data['mode'] ?? '', 'update' ); ?>>
 						<?php esc_html_e( 'Update existing posts', 'wp-content-importer' ); ?>
 					</option>
+					<option value="upsert"
+						<?php selected( $job_data['mode'] ?? '', 'upsert' ); ?>>
+						<?php esc_html_e( 'Update or create (upsert)', 'wp-content-importer' ); ?>
+					</option>
 				</select>
 			</td>
 		</tr>
+		<?php $needs_match = in_array( $job_data['mode'] ?? '', [ 'update', 'upsert' ], true ); ?>
 		<tr class="wci-match-row"
-			style="<?php echo ( $job_data['mode'] ?? '' ) === 'update' ? '' : 'display:none;'; ?>">
+			style="<?php echo $needs_match ? '' : 'display:none;'; ?>">
 			<th>
 				<label for="wci-match-field">
 					<?php esc_html_e( 'Match Field', 'wp-content-importer' ); ?>
@@ -110,10 +115,7 @@ if ( ! empty( $job_data['post_type'] ) ) {
 						<?php esc_html_e( '— None —', 'wp-content-importer' ); ?>
 					</option>
 					<?php foreach ( $templates as $template ) : ?>
-						<option value="<?php echo esc_attr( $template['id'] ); ?>"
-							data-post-type="<?php echo esc_attr( $template['post_type'] ); ?>"
-							data-mode="<?php echo esc_attr( $template['mode'] ); ?>"
-							data-match-field="<?php echo esc_attr( $template['match_field'] ); ?>">
+						<option value="<?php echo esc_attr( $template['id'] ); ?>">
 							<?php echo esc_html( $template['name'] ); ?>
 						</option>
 					<?php endforeach; ?>

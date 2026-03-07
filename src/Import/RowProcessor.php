@@ -170,18 +170,15 @@ class RowProcessor {
 	 */
 	private function resolve_post( array $post_args, array $mapped, ImportJob $job ): ?int {
 		if ( 'create' === $job->mode ) {
-			$post_id = wp_insert_post( $post_args, true );
-
-			if ( is_wp_error( $post_id ) ) {
-				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-				throw new \RuntimeException( $post_id->get_error_message() );
-			}
-
-			return $post_id;
+			return $this->create_post( $post_args );
 		}
 
-		// Update mode — find existing post.
+		// Update or upsert mode — find existing post.
 		$existing_id = $this->find_existing_post( $job, $post_args, $mapped );
+
+		if ( ! $existing_id && 'upsert' === $job->mode ) {
+			return $this->create_post( $post_args );
+		}
 
 		if ( ! $existing_id ) {
 			return null;
@@ -200,6 +197,26 @@ class RowProcessor {
 		}
 
 		return $existing_id;
+	}
+
+	/**
+	 * Insert a new post.
+	 *
+	 * @param array $post_args Post arguments for wp_insert_post.
+	 *
+	 * @return int The new post ID.
+	 *
+	 * @throws \RuntimeException When post insertion fails.
+	 */
+	private function create_post( array $post_args ): int {
+		$post_id = wp_insert_post( $post_args, true );
+
+		if ( is_wp_error( $post_id ) ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			throw new \RuntimeException( $post_id->get_error_message() );
+		}
+
+		return $post_id;
 	}
 
 	/**

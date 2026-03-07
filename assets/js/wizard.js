@@ -41,8 +41,9 @@
 		if ( ! modeSelect ) return;
 
 		modeSelect.addEventListener( 'change', function () {
-			$( '.wci-match-row' ).style.display =
-				this.value === 'update' ? '' : 'none';
+			const needsMatch =
+				'update' === this.value || 'upsert' === this.value;
+			$( '.wci-match-row' ).style.display = needsMatch ? '' : 'none';
 		} );
 
 		const postTypeSelect = $( '#wci-post-type' );
@@ -64,35 +65,20 @@
 					}
 				);
 			} );
+
+			// Load match fields on init if the dropdown is empty.
+			const matchField = $( '#wci-match-field' );
+			if ( matchField && 0 === matchField.options.length ) {
+				postTypeSelect.dispatchEvent( new Event( 'change' ) );
+			}
 		}
 
-		// Template selection fills in configure fields.
+		// Template selection sets the template ID (mapping applied server-side).
 		const templateSelect = $( '#wci-template' );
 		if ( templateSelect ) {
 			templateSelect.addEventListener( 'change', function () {
 				const option = this.options[ this.selectedIndex ];
-				if ( ! option.value ) return;
-
-				$( '#wci-template-id' ).value = option.value;
-
-				const postType = option.dataset.postType;
-				const mode = option.dataset.mode;
-				const matchField = option.dataset.matchField;
-
-				if ( postType && postTypeSelect ) {
-					postTypeSelect.value = postType;
-					postTypeSelect.dispatchEvent( new Event( 'change' ) );
-				}
-				if ( mode ) {
-					modeSelect.value = mode;
-					modeSelect.dispatchEvent( new Event( 'change' ) );
-				}
-				if ( matchField ) {
-					// Wait for the fields to load before setting match field.
-					setTimeout( () => {
-						$( '#wci-match-field' ).value = matchField;
-					}, 500 );
-				}
+				$( '#wci-template-id' ).value = option.value || '';
 			} );
 		}
 	}
