@@ -54,10 +54,15 @@ class RowProcessor {
 	 */
 	public function process( ImportRow $row, ImportJob $job ): void {
 		try {
+			do_action( 'wci_before_process_row', $row, $job );
+
 			$mapped = $this->map_values( $row->data, $job->mapping );
+			$mapped = apply_filters( 'wci_mapped_values', $mapped, $row->data, $job );
 
 			$post_args = $this->build_post_args( $mapped, $job->post_type );
-			$post_id   = $this->resolve_post( $post_args, $mapped, $job );
+			$post_args = apply_filters( 'wci_post_args', $post_args, $mapped, $job );
+
+			$post_id = $this->resolve_post( $post_args, $mapped, $job );
 
 			if ( null === $post_id ) {
 				$row->mark_failed( 'No matching post found and mode is update-only.' );
@@ -66,6 +71,8 @@ class RowProcessor {
 
 			$this->set_acf_fields( $post_id, $mapped );
 			$this->set_meta_fields( $post_id, $mapped );
+
+			do_action( 'wci_after_process_row', $post_id, $mapped, $row, $job );
 
 			$row->mark_done( $post_id );
 		} catch ( \Throwable $e ) {
@@ -100,6 +107,8 @@ class RowProcessor {
 				},
 				$template
 			);
+
+			$value = apply_filters( 'wci_mapped_value', $value, $target_key, $data, $template );
 
 			if ( '' === $value ) {
 				continue;

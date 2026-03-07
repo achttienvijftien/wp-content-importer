@@ -76,9 +76,11 @@ class CronHandler {
 
 		if ( 'pending' === $job->status ) {
 			$job->update( [ 'status' => 'processing' ] );
+			do_action( 'wci_job_started', $job );
 		}
 
-		$rows      = ImportRow::get_pending_batch( $job->id, self::BATCH_SIZE );
+		$batch_size = (int) apply_filters( 'wci_batch_size', self::BATCH_SIZE );
+		$rows       = ImportRow::get_pending_batch( $job->id, $batch_size );
 		$processor = new RowProcessor();
 
 		$processed = 0;
@@ -106,6 +108,7 @@ class CronHandler {
 
 		if ( empty( $remaining ) ) {
 			$job->update( [ 'status' => 'completed' ] );
+			do_action( 'wci_job_completed', $job );
 		}
 	}
 }
