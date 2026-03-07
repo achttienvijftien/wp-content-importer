@@ -163,6 +163,13 @@ class FormHandler {
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		$mapping = isset( $_POST['mapping'] ) ? json_decode( wp_unslash( $_POST['mapping'] ), true ) : [];
 
+		// Sanitize mapping keys (target field names).
+		$sanitized = [];
+		foreach ( $mapping as $key => $config ) {
+			$sanitized[ sanitize_text_field( $key ) ] = $config;
+		}
+		$mapping = $sanitized;
+
 		$job->update( [ 'mapping' => wp_json_encode( $mapping ) ] );
 
 		// Save template if requested.

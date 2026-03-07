@@ -336,7 +336,7 @@ class RowProcessor {
 				continue;
 			}
 
-			update_post_meta( $post_id, $key, $entry['value'] );
+			update_post_meta( $post_id, sanitize_text_field( $key ), $entry['value'] );
 		}
 	}
 

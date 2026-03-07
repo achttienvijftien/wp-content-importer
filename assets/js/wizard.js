@@ -164,6 +164,9 @@
 	}
 
 	function createFieldSelect( fields, selectedKey ) {
+		const wrap = document.createElement( 'div' );
+		wrap.classList.add( 'wci-target-wrap' );
+
 		const select = document.createElement( 'select' );
 		select.classList.add( 'wci-target-select' );
 
@@ -187,11 +190,50 @@
 			select.lastElementChild.appendChild( opt );
 		} );
 
-		if ( selectedKey ) {
+		// Add "Custom Meta Key" option.
+		const customGroup = document.createElement( 'optgroup' );
+		customGroup.label = 'Custom';
+		const customOpt = document.createElement( 'option' );
+		customOpt.value = '__custom__';
+		customOpt.textContent = 'Custom meta key\u2026';
+		customOpt.dataset.type = 'text';
+		customGroup.appendChild( customOpt );
+		select.appendChild( customGroup );
+
+		const customInput = document.createElement( 'input' );
+		customInput.type = 'text';
+		customInput.classList.add( 'wci-custom-meta-input', 'regular-text' );
+		customInput.placeholder = 'Enter meta key';
+		customInput.setAttribute( 'autocomplete', 'off' );
+		customInput.setAttribute( 'data-1p-ignore', '' );
+		customInput.setAttribute( 'data-lpignore', 'true' );
+		customInput.style.display = 'none';
+
+		// Check if selectedKey is a known field or a custom meta key.
+		const isCustom =
+			selectedKey &&
+			! fields.some( ( f ) => f.key === selectedKey );
+
+		if ( isCustom ) {
+			select.value = '__custom__';
+			customInput.value = selectedKey;
+			customInput.style.display = '';
+		} else if ( selectedKey ) {
 			select.value = selectedKey;
 		}
 
-		return select;
+		select.addEventListener( 'change', () => {
+			customInput.style.display =
+				'__custom__' === select.value ? '' : 'none';
+			if ( '__custom__' !== select.value ) {
+				customInput.value = '';
+			}
+		} );
+
+		wrap.appendChild( select );
+		wrap.appendChild( customInput );
+
+		return wrap;
 	}
 
 	function createTemplateInput( headers, preview, templateValue ) {
@@ -266,7 +308,8 @@
 		const tr = document.createElement( 'tr' );
 
 		const tdTarget = document.createElement( 'td' );
-		tdTarget.appendChild( createFieldSelect( fields, targetKey || '' ) );
+		const fieldWrap = createFieldSelect( fields, targetKey || '' );
+		tdTarget.appendChild( fieldWrap );
 		tr.appendChild( tdTarget );
 
 		const tdTemplate = document.createElement( 'td' );
@@ -310,8 +353,15 @@
 
 		$$( '#wci-mapping-table tbody tr' ).forEach( ( tr ) => {
 			const targetSelect = tr.querySelector( '.wci-target-select' );
-			const target = targetSelect.value;
+			let target = targetSelect.value;
 			if ( ! target ) return;
+
+			// Resolve custom meta key.
+			if ( '__custom__' === target ) {
+				const customInput = tr.querySelector( '.wci-custom-meta-input' );
+				target = customInput ? customInput.value.trim() : '';
+				if ( ! target ) return;
+			}
 
 			const template = tr.querySelector( '.wci-template-input' ).value;
 			if ( ! template ) return;
