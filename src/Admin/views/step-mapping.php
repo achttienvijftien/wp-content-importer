@@ -15,7 +15,26 @@
 defined( 'ABSPATH' ) || exit;
 
 require __DIR__ . '/partials/step-nav.php';
+
+// phpcs:disable WordPress.Security.NonceVerification.Recommended
+$mapping_error      = isset( $_GET['error'] ) ? sanitize_text_field( wp_unslash( $_GET['error'] ) ) : '';
+$prev_template_name = isset( $_GET['template_name'] ) ? sanitize_text_field( wp_unslash( $_GET['template_name'] ) ) : '';
+$template_checked   = 'template_exists' === $mapping_error;
+// phpcs:enable WordPress.Security.NonceVerification.Recommended
 ?>
+
+<?php if ( 'template_exists' === $mapping_error ) : ?>
+	<div class="notice notice-error">
+		<p>
+			<?php
+			esc_html_e(
+				'A template with that name already exists. Please choose a different name.',
+				'wp-content-importer'
+			);
+			?>
+		</p>
+	</div>
+<?php endif; ?>
 
 <h2><?php esc_html_e( 'Map Fields', 'wp-content-importer' ); ?></h2>
 <p>
@@ -54,13 +73,16 @@ require __DIR__ . '/partials/step-nav.php';
 
 	<h3><?php esc_html_e( 'Save as Template', 'wp-content-importer' ); ?></h3>
 	<label>
-		<input type="checkbox" name="save_template" id="wci-save-template" value="1" />
+		<input type="checkbox" name="save_template" id="wci-save-template"
+			value="1" <?php checked( $template_checked ); ?> />
 		<?php esc_html_e( 'Save this mapping for future use', 'wp-content-importer' ); ?>
 	</label>
-	<div id="wci-template-name-wrap" style="display:none;">
+	<div id="wci-template-name-wrap"
+		style="<?php echo $template_checked ? '' : 'display:none;'; ?>">
 		<input type="text" name="template_name" id="wci-template-name"
 			placeholder="<?php esc_attr_e( 'Template name', 'wp-content-importer' ); ?>"
-			class="regular-text" />
+			class="regular-text"
+			value="<?php echo esc_attr( $prev_template_name ); ?>" />
 	</div>
 
 	<br /><br />

@@ -97,6 +97,26 @@ class Template {
 	}
 
 	/**
+	 * Check whether a template with the given name already exists.
+	 *
+	 * @param string $name Template name to check.
+	 *
+	 * @return bool True if a template with this name exists.
+	 */
+	public static function exists( string $name ): bool {
+		$posts = get_posts(
+			[
+				'post_type'   => self::POST_TYPE,
+				'title'       => $name,
+				'numberposts' => 1,
+				'fields'      => 'ids',
+			]
+		);
+
+		return ! empty( $posts );
+	}
+
+	/**
 	 * Retrieve all saved import templates.
 	 *
 	 * @return array[] List of template data arrays.

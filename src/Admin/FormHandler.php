@@ -177,6 +177,17 @@ class FormHandler {
 		$template_name = isset( $_POST['template_name'] ) ? sanitize_text_field( wp_unslash( $_POST['template_name'] ) ) : '';
 
 		if ( $save_template && $template_name ) {
+			if ( Template::exists( $template_name ) ) {
+				$this->redirect(
+					[
+						'step'          => 'mapping',
+						'job_id'        => $job->id,
+						'error'         => 'template_exists',
+						'template_name' => $template_name,
+					]
+				);
+			}
+
 			Template::save( $template_name, $job->post_type, $job->mode, $job->match_field, $mapping );
 		}
 
