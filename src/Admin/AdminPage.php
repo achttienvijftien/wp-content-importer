@@ -72,12 +72,18 @@ class AdminPage {
 			true
 		);
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$edit_job_id = isset( $_GET['view'], $_GET['job_id'] ) && 'edit' === $_GET['view']
+			? (int) $_GET['job_id']
+			: 0;
+
 		wp_localize_script(
 			'wci-wizard',
 			'wciData',
 			[
-				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-				'nonce'   => wp_create_nonce( 'wci_nonce' ),
+				'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
+				'nonce'     => wp_create_nonce( 'wci_nonce' ),
+				'editJobId' => $edit_job_id,
 			]
 		);
 	}
@@ -100,6 +106,9 @@ class AdminPage {
 				break;
 			case 'history':
 				include __DIR__ . '/views/history.php';
+				break;
+			case 'edit':
+				include __DIR__ . '/views/wizard.php';
 				break;
 			default:
 				include __DIR__ . '/views/wizard.php';

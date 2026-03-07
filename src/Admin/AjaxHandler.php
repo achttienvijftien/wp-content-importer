@@ -30,6 +30,7 @@ class AjaxHandler {
 		add_action( 'wp_ajax_wci_save_mapping', [ $this, 'save_mapping' ] );
 		add_action( 'wp_ajax_wci_start_import', [ $this, 'start_import' ] );
 		add_action( 'wp_ajax_wci_job_status', [ $this, 'job_status' ] );
+		add_action( 'wp_ajax_wci_get_job', [ $this, 'get_job' ] );
 	}
 
 	/**
@@ -217,7 +218,15 @@ class AjaxHandler {
 			wp_send_json_error( [ 'message' => __( 'Job not found.', 'wp-content-importer' ) ] );
 		}
 
-		$job->update( [ 'status' => 'pending' ] );
+		// Reset rows and counters for re-runs.
+		ImportRow::reset_by_job( $job->id );
+		$job->update(
+			[
+				'status'         => 'pending',
+				'processed_rows' => 0,
+				'failed_rows'    => 0,
+			]
+		);
 
 		// Spawn a cron run immediately.
 		spawn_cron();
@@ -249,6 +258,59 @@ class AjaxHandler {
 				'failed_rows'    => $job->failed_rows,
 			]
 		);
+	}
+
+	/**
+	 * Return full job data for editing via AJAX.
+	 *
+	 * @return void
+	 */
+	public function get_job(): void {
+		$this->verify_nonce();
+		$this->verify_capability();
+
+		$job_id = isset( $_POST['job_id'] ) ? (int) $_POST['job_id'] : 0;
+		$job    = ImportJob::find( $job_id );
+
+		if ( ! $job ) {
+			wp_send_json_error( [ 'message' => __( 'Job not found.', 'wp-content-importer' ) ] );
+		}
+
+		$resolver = FieldResolver::create();
+		$fields   = $resolver->resolve( $job->post_type );
+
+		wp_send_json_success(
+			[
+				'job_id'      => $job->id,
+				'name'        => $job->name,
+				'post_type'   => $job->post_type,
+				'mode'        => $job->mode,
+				'match_field' => $job->match_field,
+				'mapping'     => $job->mapping,
+				'total_rows'  => $job->total_rows,
+				'fields'      => $fields,
+				'headers'     => $this->get_job_headers( $job ),
+			]
+		);
+	}
+
+	/**
+	 * Get column headers from the first row of a job.
+	 *
+	 * @param ImportJob $job The import job.
+	 *
+	 * @return array Column headers.
+	 */
+	private function get_job_headers( ImportJob $job ): array {
+		$rows = ImportRow::get_by_job( $job->id, 1 );
+
+		if ( empty( $rows ) ) {
+			return [];
+		}
+
+		$data = $rows[0]->data;
+
+		return is_array( $data ) ? array_keys( $data ) : [];
 	}
 
 	/**

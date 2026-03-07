@@ -118,7 +118,7 @@
 	}
 
 	// Step 2: Configure.
-	function loadPostTypes() {
+	function loadPostTypes( callback ) {
 		ajaxPost( 'wci_get_post_types', {}, ( data ) => {
 			const select = $( '#wci-post-type' );
 			select.innerHTML = '';
@@ -128,6 +128,9 @@
 				opt.textContent = pt.label + ' (' + pt.name + ')';
 				select.appendChild( opt );
 			} );
+			if ( callback ) {
+				callback();
+			}
 		} );
 	}
 
@@ -178,7 +181,14 @@
 					state.fields = data.fields;
 					buildDataPreview();
 					buildMappingTable();
-					applyTemplateMapping();
+
+					if ( state.editMapping ) {
+						applyMapping( state.editMapping );
+						state.editMapping = null;
+					} else {
+						applyTemplateMapping();
+					}
+
 					goToStep( 3 );
 				}
 			);
@@ -371,6 +381,14 @@
 	function buildMappingTable() {
 		$( '#wci-mapping-table tbody' ).innerHTML = '';
 		addMappingRow();
+	}
+
+	function applyMapping( mapping ) {
+		$( '#wci-mapping-table tbody' ).innerHTML = '';
+
+		Object.entries( mapping ).forEach( ( [ targetKey, config ] ) => {
+			addMappingRow( targetKey, config.template || '' );
+		} );
 	}
 
 	function applyTemplateMapping() {
@@ -566,6 +584,53 @@
 		} );
 	}
 
+	function loadExistingJob( jobId ) {
+		ajaxPost( 'wci_get_job', { job_id: jobId }, ( data ) => {
+			state.jobId = data.job_id;
+			state.headers = data.headers || [];
+			state.fields = data.fields || [];
+			state.preview = [];
+
+			$( '#wci-name' ).value = data.name || '';
+
+			loadPostTypes( () => {
+				$( '#wci-post-type' ).value = data.post_type || '';
+				$( '#wci-mode' ).value = data.mode || 'create';
+				$( '#wci-mode' ).dispatchEvent( new Event( 'change' ) );
+
+				if ( data.match_field ) {
+					ajaxPost(
+						'wci_get_fields',
+						{ post_type: data.post_type },
+						( fields ) => {
+							const select = $( '#wci-match-field' );
+							select.innerHTML = '';
+							fields.forEach( ( field ) => {
+								const opt =
+									document.createElement( 'option' );
+								opt.value = field.key;
+								opt.textContent =
+									field.name +
+									' (' +
+									field.group +
+									')';
+								select.appendChild( opt );
+							} );
+							select.value = data.match_field;
+						}
+					);
+				}
+			} );
+
+			// Pre-build mapping if there is one.
+			if ( data.mapping ) {
+				state.editMapping = data.mapping;
+			}
+
+			goToStep( 2 );
+		} );
+	}
+
 	// Init.
 	document.addEventListener( 'DOMContentLoaded', () => {
 		if ( ! $( '#wci-wizard' ) ) return;
@@ -575,5 +640,9 @@
 		initConfigure();
 		initMapping();
 		initImport();
+
+		if ( wciData.editJobId ) {
+			loadExistingJob( wciData.editJobId );
+		}
 	} );
 } )();

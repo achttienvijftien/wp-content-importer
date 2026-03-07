@@ -25,6 +25,17 @@ $page_url = admin_url( 'admin.php?page=wp-content-importer' );
 	<a href="<?php echo esc_url( add_query_arg( 'view', 'history', $page_url ) ); ?>" class="button">
 		<?php esc_html_e( 'Back to History', 'wp-content-importer' ); ?>
 	</a>
+	<?php
+	if ( in_array( $job->status, [ 'draft', 'failed', 'completed' ], true ) ) :
+		$edit_args = [
+			'view'   => 'edit',
+			'job_id' => $job->id,
+		];
+		?>
+		<a href="<?php echo esc_url( add_query_arg( $edit_args, $page_url ) ); ?>" class="button">
+			<?php esc_html_e( 'Edit Settings', 'wp-content-importer' ); ?>
+		</a>
+	<?php endif; ?>
 </p>
 
 <h2>

@@ -219,4 +219,25 @@ class ImportRow {
 		$this->status = 'failed';
 		$this->error  = $error;
 	}
+
+	/**
+	 * Reset all rows for a job back to pending.
+	 *
+	 * @param int $job_id The job ID.
+	 *
+	 * @return void
+	 */
+	public static function reset_by_job( int $job_id ): void {
+		global $wpdb;
+
+		$wpdb->update(
+			Migrator::rows_table(),
+			[
+				'status'  => 'pending',
+				'post_id' => null,
+				'error'   => null,
+			],
+			[ 'job_id' => $job_id ]
+		);
+	}
 }
