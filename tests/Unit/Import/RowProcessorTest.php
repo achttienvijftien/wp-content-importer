@@ -3,15 +3,16 @@
 namespace AchttienVijftien\WpContentImporter\Tests\Unit\Import;
 
 use AchttienVijftien\WpContentImporter\Import\RowProcessor;
-use Yoast\PHPUnitPolyfills\TestCases\TestCase;
 use ReflectionMethod;
+use Yoast\PHPUnitPolyfills\TestCases\TestCase;
 
 class RowProcessorTest extends TestCase {
 
 	private RowProcessor $processor;
 	private ReflectionMethod $map_values;
 
-	protected function setUp(): void {
+	protected function set_up(): void {
+		parent::set_up();
 		$this->processor  = new RowProcessor();
 		$this->map_values = new ReflectionMethod( RowProcessor::class, 'map_values' );
 	}
@@ -133,5 +134,73 @@ class RowProcessorTest extends TestCase {
 		$result = $this->map( $data, $mapping );
 
 		$this->assertSame( 'email', $result['field_email']['type'] );
+	}
+
+	public function test_wci_mapped_value_filter_alters_value(): void {
+		$filter = function ( $value, $target_key ) {
+			if ( 'post_title' === $target_key ) {
+				return strtoupper( $value );
+			}
+			return $value;
+		};
+
+		add_filter( 'wci_mapped_value', $filter, 10, 2 );
+
+		$data    = [ 'voornaam' => 'Jan' ];
+		$mapping = [
+			'post_title' => [ 'template' => '{voornaam}', 'type' => 'text' ],
+			'first_name' => [ 'template' => '{voornaam}', 'type' => 'text' ],
+		];
+
+		$result = $this->map( $data, $mapping );
+
+		$this->assertSame( 'JAN', $result['post_title']['value'] );
+		$this->assertSame( 'Jan', $result['first_name']['value'] );
+
+		remove_filter( 'wci_mapped_value', $filter, 10 );
+	}
+
+	public function test_wci_mapped_value_filter_can_empty_to_skip(): void {
+		$filter = function () {
+			return '';
+		};
+
+		add_filter( 'wci_mapped_value', $filter );
+
+		$data    = [ 'voornaam' => 'Jan' ];
+		$mapping = [
+			'post_title' => [ 'template' => '{voornaam}', 'type' => 'text' ],
+		];
+
+		$result = $this->map( $data, $mapping );
+
+		$this->assertArrayNotHasKey( 'post_title', $result );
+
+		remove_filter( 'wci_mapped_value', $filter );
+	}
+
+	public function test_wci_mapped_value_filter_receives_all_args(): void {
+		$captured = [];
+
+		$filter = function ( $value, $target_key, $data, $template ) use ( &$captured ) {
+			$captured = compact( 'value', 'target_key', 'data', 'template' );
+			return $value;
+		};
+
+		add_filter( 'wci_mapped_value', $filter, 10, 4 );
+
+		$data    = [ 'voornaam' => 'Jan' ];
+		$mapping = [
+			'post_title' => [ 'template' => 'Hi {voornaam}', 'type' => 'text' ],
+		];
+
+		$this->map( $data, $mapping );
+
+		$this->assertSame( 'Hi Jan', $captured['value'] );
+		$this->assertSame( 'post_title', $captured['target_key'] );
+		$this->assertSame( $data, $captured['data'] );
+		$this->assertSame( 'Hi {voornaam}', $captured['template'] );
+
+		remove_filter( 'wci_mapped_value', $filter, 10 );
 	}
 }
