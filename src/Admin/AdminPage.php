@@ -57,18 +57,22 @@ class AdminPage {
 			return;
 		}
 
+		$plugin_file = dirname( __DIR__ ) . '/../wp-content-importer.php';
+
+		$css_path = dirname( $plugin_file ) . '/assets/css/wizard.css';
 		wp_enqueue_style(
 			'wci-wizard',
-			plugins_url( 'assets/css/wizard.css', dirname( __DIR__ ) . '/../wp-content-importer.php' ),
+			plugins_url( 'assets/css/wizard.css', $plugin_file ),
 			[],
-			'1.0.0'
+			(string) filemtime( $css_path )
 		);
 
+		$js_path = dirname( $plugin_file ) . '/assets/js/wizard.js';
 		wp_enqueue_script(
 			'wci-wizard',
-			plugins_url( 'assets/js/wizard.js', dirname( __DIR__ ) . '/../wp-content-importer.php' ),
+			plugins_url( 'assets/js/wizard.js', $plugin_file ),
 			[],
-			'1.0.0',
+			(string) filemtime( $js_path ),
 			true
 		);
 

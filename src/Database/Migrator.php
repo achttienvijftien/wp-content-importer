@@ -49,6 +49,29 @@ class Migrator {
 	}
 
 	/**
+	 * Current schema version.
+	 *
+	 * @var int
+	 */
+	private const SCHEMA_VERSION = 2;
+
+	/**
+	 * Run dbDelta when the schema version has changed.
+	 *
+	 * @return void
+	 */
+	public static function maybe_upgrade(): void {
+		$installed = (int) get_option( 'wci_schema_version', 0 );
+
+		if ( $installed >= self::SCHEMA_VERSION ) {
+			return;
+		}
+
+		self::activate();
+		update_option( 'wci_schema_version', self::SCHEMA_VERSION );
+	}
+
+	/**
 	 * Create the database tables on plugin activation.
 	 *
 	 * @return void

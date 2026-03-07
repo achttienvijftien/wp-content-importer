@@ -46,6 +46,7 @@ class Plugin {
 
 		register_activation_hook( $plugin_file, [ Migrator::class, 'activate' ] );
 
+		add_action( 'admin_init', [ Migrator::class, 'maybe_upgrade' ] );
 		add_filter( 'cron_schedules', [ CronHandler::class, 'register_interval' ] );
 		add_action( 'init', [ Template::class, 'register_post_type' ] );
 
