@@ -7,7 +7,7 @@ use Yoast\PHPUnitPolyfills\TestCases\TestCase;
 
 class CoreFieldProviderTest extends TestCase {
 
-	public function test_returns_core_fields(): void {
+	public function test_returns_core_fields_for_post(): void {
 		$provider = new CoreFieldProvider();
 		$fields   = $provider->get_fields( 'post' );
 
@@ -42,12 +42,34 @@ class CoreFieldProviderTest extends TestCase {
 		}
 	}
 
-	public function test_returns_same_fields_for_any_post_type(): void {
+	public function test_excludes_parent_for_non_hierarchical_type(): void {
 		$provider = new CoreFieldProvider();
+		$keys     = array_column( $provider->get_fields( 'post' ), 'key' );
 
-		$this->assertSame(
-			$provider->get_fields( 'post' ),
-			$provider->get_fields( 'page' )
-		);
+		$this->assertNotContains( 'post_parent', $keys );
+	}
+
+	public function test_includes_parent_for_hierarchical_type(): void {
+		$provider = new CoreFieldProvider();
+		$keys     = array_column( $provider->get_fields( 'page' ), 'key' );
+
+		$this->assertContains( 'post_parent', $keys );
+	}
+
+	public function test_excludes_unsupported_features(): void {
+		register_post_type( 'wci_minimal', [ 'supports' => [ 'title' ] ] );
+
+		$provider = new CoreFieldProvider();
+		$keys     = array_column( $provider->get_fields( 'wci_minimal' ), 'key' );
+
+		$this->assertContains( 'post_title', $keys );
+		$this->assertNotContains( 'post_content', $keys );
+		$this->assertNotContains( 'post_excerpt', $keys );
+		$this->assertNotContains( 'post_author', $keys );
+		$this->assertNotContains( 'post_parent', $keys );
+		// Always-available fields.
+		$this->assertContains( 'post_status', $keys );
+		$this->assertContains( 'post_date', $keys );
+		$this->assertContains( 'post_name', $keys );
 	}
 }

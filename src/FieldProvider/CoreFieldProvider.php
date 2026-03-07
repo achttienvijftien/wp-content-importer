@@ -13,64 +13,86 @@ namespace AchttienVijftien\WpContentImporter\FieldProvider;
 class CoreFieldProvider implements FieldProviderInterface {
 
 	/**
-	 * Core post fields definition.
+	 * Core post fields and the feature they require.
+	 *
+	 * A null feature means the field is always available.
 	 *
 	 * @var array[]
 	 */
 	private const FIELDS = [
 		[
-			'name' => 'Title',
-			'key'  => 'post_title',
-			'type' => 'text',
+			'name'    => 'Title',
+			'key'     => 'post_title',
+			'type'    => 'text',
+			'feature' => 'title',
 		],
 		[
-			'name' => 'Content',
-			'key'  => 'post_content',
-			'type' => 'textarea',
+			'name'    => 'Content',
+			'key'     => 'post_content',
+			'type'    => 'textarea',
+			'feature' => 'editor',
 		],
 		[
-			'name' => 'Excerpt',
-			'key'  => 'post_excerpt',
-			'type' => 'textarea',
+			'name'    => 'Excerpt',
+			'key'     => 'post_excerpt',
+			'type'    => 'textarea',
+			'feature' => 'excerpt',
 		],
 		[
-			'name' => 'Status',
-			'key'  => 'post_status',
-			'type' => 'select',
+			'name'    => 'Status',
+			'key'     => 'post_status',
+			'type'    => 'select',
+			'feature' => null,
 		],
 		[
-			'name' => 'Date',
-			'key'  => 'post_date',
-			'type' => 'date',
+			'name'    => 'Date',
+			'key'     => 'post_date',
+			'type'    => 'date',
+			'feature' => null,
 		],
 		[
-			'name' => 'Author',
-			'key'  => 'post_author',
-			'type' => 'author',
+			'name'    => 'Author',
+			'key'     => 'post_author',
+			'type'    => 'author',
+			'feature' => 'author',
 		],
 		[
-			'name' => 'Slug',
-			'key'  => 'post_name',
-			'type' => 'text',
+			'name'    => 'Slug',
+			'key'     => 'post_name',
+			'type'    => 'text',
+			'feature' => null,
 		],
 		[
-			'name' => 'Parent',
-			'key'  => 'post_parent',
-			'type' => 'integer',
+			'name'    => 'Parent',
+			'key'     => 'post_parent',
+			'type'    => 'integer',
+			'feature' => 'page-attributes',
 		],
 	];
 
 	/**
-	 * Get core fields for a given post type.
+	 * Get core fields for a given post type, filtered by supported features.
 	 *
 	 * @param string $post_type The post type slug.
 	 *
 	 * @return array[] List of field definitions.
 	 */
 	public function get_fields( string $post_type ): array {
-		return array_map(
-			fn( $field ) => array_merge( $field, [ 'group' => 'Core' ] ),
-			self::FIELDS
-		);
+		$fields = [];
+
+		foreach ( self::FIELDS as $field ) {
+			if ( null !== $field['feature'] && ! post_type_supports( $post_type, $field['feature'] ) ) {
+				continue;
+			}
+
+			$fields[] = [
+				'name'  => $field['name'],
+				'key'   => $field['key'],
+				'type'  => $field['type'],
+				'group' => 'Core',
+			];
+		}
+
+		return $fields;
 	}
 }
