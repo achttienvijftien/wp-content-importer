@@ -1,15 +1,5 @@
-(function () {
+( function () {
 	'use strict';
-
-	const state = {
-		jobId: null,
-		headers: [],
-		preview: [],
-		fields: [],
-		pollInterval: null,
-		currentStep: 1,
-		maxStep: 1,
-	};
 
 	function $( selector ) {
 		return document.querySelector( selector );
@@ -23,25 +13,6 @@
 		const div = document.createElement( 'div' );
 		div.textContent = str;
 		return div.innerHTML;
-	}
-
-	function goToStep( step ) {
-		state.currentStep = step;
-
-		$$( '.wci-panel' ).forEach( ( panel ) => {
-			panel.style.display =
-				panel.dataset.step === String( step ) ? '' : 'none';
-		} );
-		$$( '.wci-step' ).forEach( ( el ) => {
-			const elStep = Number( el.dataset.step );
-			el.classList.toggle( 'active', elStep === step );
-			el.classList.toggle( 'completed', elStep < step );
-		} );
-
-		// Track the highest step reached for back-navigation.
-		if ( step > ( state.maxStep || 0 ) ) {
-			state.maxStep = step;
-		}
 	}
 
 	function ajaxPost( action, data, callback ) {
@@ -64,176 +35,121 @@
 			.catch( () => alert( 'Request failed.' ) );
 	}
 
-	function ajaxUpload( action, file, callback ) {
-		const formData = new FormData();
-		formData.append( 'action', action );
-		formData.append( 'nonce', wciData.nonce );
-		formData.append( 'file', file );
-
-		fetch( wciData.ajaxUrl, { method: 'POST', body: formData } )
-			.then( ( res ) => res.json() )
-			.then( ( res ) => {
-				if ( res.success ) {
-					callback( res.data );
-				} else {
-					alert( res.data?.message || 'Upload failed.' );
-				}
-			} )
-			.catch( () => alert( 'Upload failed.' ) );
-	}
-
-	// Step 1: Upload.
-	function initUpload() {
-		const fileInput = $( '#wci-file' );
-		const uploadBtn = $( '#wci-upload-btn' );
-
-		fileInput.addEventListener( 'change', () => {
-			uploadBtn.disabled = ! fileInput.files.length;
-		} );
-
-		uploadBtn.addEventListener( 'click', () => {
-			uploadBtn.disabled = true;
-			uploadBtn.textContent = 'Uploading...';
-
-			ajaxUpload(
-				'wci_upload_file',
-				fileInput.files[ 0 ],
-				( data ) => {
-					state.jobId = data.job_id;
-					state.headers = data.headers;
-					state.preview = data.preview;
-
-					$( '#wci-name' ).value = data.name || '';
-
-					$( '#wci-upload-status' ).innerHTML =
-						'<p class="notice notice-success">Parsed ' +
-						data.total +
-						' rows.</p>';
-
-					loadPostTypes();
-					goToStep( 2 );
-				}
-			);
-		} );
-	}
-
-	// Step 2: Configure.
-	function loadPostTypes( callback ) {
-		ajaxPost( 'wci_get_post_types', {}, ( data ) => {
-			const select = $( '#wci-post-type' );
-			select.innerHTML = '';
-			data.forEach( ( pt ) => {
-				const opt = document.createElement( 'option' );
-				opt.value = pt.name;
-				opt.textContent = pt.label + ' (' + pt.name + ')';
-				select.appendChild( opt );
-			} );
-			if ( callback ) {
-				callback();
-			}
-		} );
-	}
-
+	// Configure step: mode toggle and post-type field refresh.
 	function initConfigure() {
-		$( '#wci-mode' ).addEventListener( 'change', function () {
+		const modeSelect = $( '#wci-mode' );
+		if ( ! modeSelect ) return;
+
+		modeSelect.addEventListener( 'change', function () {
 			$( '.wci-match-row' ).style.display =
 				this.value === 'update' ? '' : 'none';
 		} );
 
-		$( '#wci-template' ).addEventListener( 'change', function () {
-			const option = this.options[ this.selectedIndex ];
-			if ( option.value ) {
+		const postTypeSelect = $( '#wci-post-type' );
+		if ( postTypeSelect ) {
+			postTypeSelect.addEventListener( 'change', function () {
+				ajaxPost(
+					'wci_get_fields',
+					{ post_type: this.value },
+					( data ) => {
+						const select = $( '#wci-match-field' );
+						select.innerHTML = '';
+						data.forEach( ( field ) => {
+							const opt = document.createElement( 'option' );
+							opt.value = field.key;
+							opt.textContent =
+								field.name + ' (' + field.group + ')';
+							select.appendChild( opt );
+						} );
+					}
+				);
+			} );
+		}
+
+		// Template selection fills in configure fields.
+		const templateSelect = $( '#wci-template' );
+		if ( templateSelect ) {
+			templateSelect.addEventListener( 'change', function () {
+				const option = this.options[ this.selectedIndex ];
+				if ( ! option.value ) return;
+
+				$( '#wci-template-id' ).value = option.value;
+
 				const postType = option.dataset.postType;
 				const mode = option.dataset.mode;
 				const matchField = option.dataset.matchField;
 
-				if ( postType ) {
-					$( '#wci-post-type' ).value = postType;
+				if ( postType && postTypeSelect ) {
+					postTypeSelect.value = postType;
+					postTypeSelect.dispatchEvent( new Event( 'change' ) );
 				}
 				if ( mode ) {
-					$( '#wci-mode' ).value = mode;
-					$( '#wci-mode' ).dispatchEvent(
-						new Event( 'change' )
-					);
+					modeSelect.value = mode;
+					modeSelect.dispatchEvent( new Event( 'change' ) );
 				}
 				if ( matchField ) {
-					$( '#wci-match-field' ).value = matchField;
+					// Wait for the fields to load before setting match field.
+					setTimeout( () => {
+						$( '#wci-match-field' ).value = matchField;
+					}, 500 );
 				}
+			} );
+		}
+	}
+
+	// Mapping step: dynamic table, column tags, template preview.
+	function initMapping() {
+		if ( ! $( '#wci-mapping-table' ) ) return;
+
+		const headers = wciData.headers || [];
+		const fields = wciData.fields || [];
+		const preview = wciData.preview || [];
+		const mapping = wciData.mapping || null;
+
+		buildDataPreview( headers, preview );
+		buildMappingTable( fields, headers, preview, mapping );
+
+		$( '#wci-add-mapping' ).addEventListener( 'click', () => {
+			addMappingRow( fields, headers, preview );
+		} );
+
+		$( '#wci-save-template' ).addEventListener(
+			'change',
+			function () {
+				$( '#wci-template-name-wrap' ).style.display =
+					this.checked ? '' : 'none';
 			}
-		} );
+		);
 
-		$( '#wci-configure-btn' ).addEventListener( 'click', () => {
-			const postType = $( '#wci-post-type' ).value;
-			const mode = $( '#wci-mode' ).value;
-			const matchField =
-				mode === 'update' ? $( '#wci-match-field' ).value : '';
+		// On form submit, collect mapping JSON into hidden field.
+		$( '#wci-mapping-form' ).addEventListener( 'submit', ( e ) => {
+			const mapping = collectMapping();
 
-			ajaxPost(
-				'wci_configure_job',
-				{
-					job_id: state.jobId,
-					name: $( '#wci-name' ).value,
-					post_type: postType,
-					mode: mode,
-					match_field: matchField,
-				},
-				( data ) => {
-					state.fields = data.fields;
-					buildDataPreview();
-					buildMappingTable();
+			if ( Object.keys( mapping ).length === 0 ) {
+				e.preventDefault();
+				alert( 'Please map at least one field.' );
+				return;
+			}
 
-					if ( state.editMapping ) {
-						applyMapping( state.editMapping );
-						state.editMapping = null;
-					} else {
-						applyTemplateMapping();
-					}
-
-					goToStep( 3 );
-				}
-			);
-		} );
-
-		// Populate match field when post type changes.
-		$( '#wci-post-type' ).addEventListener( 'change', function () {
-			ajaxPost(
-				'wci_get_fields',
-				{ post_type: this.value },
-				( data ) => {
-					const select = $( '#wci-match-field' );
-					select.innerHTML = '';
-					data.forEach( ( field ) => {
-						const opt = document.createElement( 'option' );
-						opt.value = field.key;
-						opt.textContent =
-							field.name + ' (' + field.group + ')';
-						select.appendChild( opt );
-					} );
-				}
-			);
+			$( '#wci-mapping-data' ).value = JSON.stringify( mapping );
 		} );
 	}
 
-	// Step 3: Mapping.
-
-	function buildDataPreview() {
+	function buildDataPreview( headers, preview ) {
 		const div = $( '#wci-data-preview' );
-		if ( ! state.preview.length ) {
-			div.innerHTML = '';
-			return;
-		}
+		if ( ! div || ! preview.length ) return;
 
 		let html =
 			'<details class="wci-preview-details" open><summary>' +
 			escHtml( 'Available columns (first row preview)' ) +
 			'</summary>' +
 			'<table class="widefat striped"><thead><tr>';
-		state.headers.forEach( ( h ) => {
+		headers.forEach( ( h ) => {
 			html += '<th>' + escHtml( h ) + '</th>';
 		} );
 		html += '</tr></thead><tbody><tr>';
-		state.headers.forEach( ( h ) => {
-			const val = state.preview[ 0 ][ h ] || '';
+		headers.forEach( ( h ) => {
+			const val = preview[ 0 ][ h ] || '';
 			html +=
 				'<td>' +
 				escHtml(
@@ -247,7 +163,7 @@
 		div.innerHTML = html;
 	}
 
-	function createFieldSelect( selectedKey ) {
+	function createFieldSelect( fields, selectedKey ) {
 		const select = document.createElement( 'select' );
 		select.classList.add( 'wci-target-select' );
 
@@ -257,7 +173,7 @@
 		select.appendChild( skipOpt );
 
 		let currentGroup = '';
-		state.fields.forEach( ( field ) => {
+		fields.forEach( ( field ) => {
 			if ( field.group !== currentGroup ) {
 				currentGroup = field.group;
 				const optgroup = document.createElement( 'optgroup' );
@@ -278,11 +194,10 @@
 		return select;
 	}
 
-	function createTemplateInput( templateValue ) {
+	function createTemplateInput( headers, preview, templateValue ) {
 		const wrap = document.createElement( 'div' );
 		wrap.classList.add( 'wci-template-wrap' );
 
-		// Template text input.
 		const input = document.createElement( 'input' );
 		input.type = 'text';
 		input.classList.add( 'wci-template-input', 'regular-text' );
@@ -293,16 +208,14 @@
 		input.placeholder = 'e.g. {voornaam} {achternaam} or a static value';
 		wrap.appendChild( input );
 
-		// Live preview.
-		const preview = document.createElement( 'div' );
-		preview.classList.add( 'wci-template-preview' );
-		wrap.appendChild( preview );
+		const previewEl = document.createElement( 'div' );
+		previewEl.classList.add( 'wci-template-preview' );
+		wrap.appendChild( previewEl );
 
-		// Column insert tags.
 		const tags = document.createElement( 'div' );
 		tags.classList.add( 'wci-column-tags' );
 
-		state.headers.forEach( ( header ) => {
+		headers.forEach( ( header ) => {
 			const tag = document.createElement( 'button' );
 			tag.type = 'button';
 			tag.classList.add( 'wci-column-tag' );
@@ -325,22 +238,21 @@
 
 		wrap.appendChild( tags );
 
-		// Update preview on input.
 		const updatePreview = () => {
-			if ( ! state.preview.length || ! input.value ) {
-				preview.textContent = '';
-				preview.style.display = 'none';
+			if ( ! preview.length || ! input.value ) {
+				previewEl.textContent = '';
+				previewEl.style.display = 'none';
 				return;
 			}
-			const row = state.preview[ 0 ];
+			const row = preview[ 0 ];
 			const resolved = input.value.replace(
 				/\{([^}]+)\}/g,
 				( match, col ) => {
 					return row[ col ] !== undefined ? row[ col ] : match;
 				}
 			);
-			preview.textContent = '\u2192 ' + resolved;
-			preview.style.display = '';
+			previewEl.textContent = '\u2192 ' + resolved;
+			previewEl.style.display = '';
 		};
 
 		input.addEventListener( 'input', updatePreview );
@@ -349,23 +261,20 @@
 		return wrap;
 	}
 
-	function addMappingRow( targetKey, templateValue ) {
+	function addMappingRow( fields, headers, preview, targetKey, templateValue ) {
 		const tbody = $( '#wci-mapping-table tbody' );
 		const tr = document.createElement( 'tr' );
 
-		// Target field dropdown.
 		const tdTarget = document.createElement( 'td' );
-		tdTarget.appendChild( createFieldSelect( targetKey || '' ) );
+		tdTarget.appendChild( createFieldSelect( fields, targetKey || '' ) );
 		tr.appendChild( tdTarget );
 
-		// Template value input with column tags.
 		const tdTemplate = document.createElement( 'td' );
 		tdTemplate.appendChild(
-			createTemplateInput( templateValue || '' )
+			createTemplateInput( headers, preview, templateValue || '' )
 		);
 		tr.appendChild( tdTemplate );
 
-		// Remove button.
 		const tdRemove = document.createElement( 'td' );
 		const removeBtn = document.createElement( 'button' );
 		removeBtn.type = 'button';
@@ -378,42 +287,21 @@
 		tbody.appendChild( tr );
 	}
 
-	function buildMappingTable() {
-		$( '#wci-mapping-table tbody' ).innerHTML = '';
-		addMappingRow();
-	}
-
-	function applyMapping( mapping ) {
+	function buildMappingTable( fields, headers, preview, mapping ) {
 		$( '#wci-mapping-table tbody' ).innerHTML = '';
 
-		Object.entries( mapping ).forEach( ( [ targetKey, config ] ) => {
-			addMappingRow( targetKey, config.template || '' );
-		} );
-	}
-
-	function applyTemplateMapping() {
-		const templateSelect = $( '#wci-template' );
-		const option =
-			templateSelect.options[ templateSelect.selectedIndex ];
-
-		if ( ! option || ! option.value ) return;
-
-		try {
-			const mapping = JSON.parse( option.dataset.mapping );
-			if ( ! mapping ) return;
-
-			$( '#wci-mapping-table tbody' ).innerHTML = '';
-
-			Object.entries( mapping ).forEach(
-				( [ targetKey, config ] ) => {
-					addMappingRow(
-						targetKey,
-						config.template || ''
-					);
-				}
-			);
-		} catch ( e ) {
-			// Ignore invalid template data.
+		if ( mapping && typeof mapping === 'object' ) {
+			Object.entries( mapping ).forEach( ( [ targetKey, config ] ) => {
+				addMappingRow(
+					fields,
+					headers,
+					preview,
+					targetKey,
+					config.template || ''
+				);
+			} );
+		} else {
+			addMappingRow( fields, headers, preview );
 		}
 	}
 
@@ -421,15 +309,11 @@
 		const mapping = {};
 
 		$$( '#wci-mapping-table tbody tr' ).forEach( ( tr ) => {
-			const targetSelect = tr.querySelector(
-				'.wci-target-select'
-			);
+			const targetSelect = tr.querySelector( '.wci-target-select' );
 			const target = targetSelect.value;
 			if ( ! target ) return;
 
-			const template = tr.querySelector(
-				'.wci-template-input'
-			).value;
+			const template = tr.querySelector( '.wci-template-input' ).value;
 			if ( ! template ) return;
 
 			const selectedOption = targetSelect.selectedOptions[ 0 ];
@@ -443,74 +327,17 @@
 		return mapping;
 	}
 
-	function initMapping() {
-		$( '#wci-save-template' ).addEventListener(
-			'change',
-			function () {
-				$( '#wci-template-name-wrap' ).style.display =
-					this.checked ? '' : 'none';
-			}
-		);
-
-		$( '#wci-add-mapping' ).addEventListener( 'click', () => {
-			addMappingRow();
-		} );
-
-		$( '#wci-map-btn' ).addEventListener( 'click', () => {
-			const mapping = collectMapping();
-
-			if ( Object.keys( mapping ).length === 0 ) {
-				alert( 'Please map at least one field.' );
-				return;
-			}
-
-			const data = {
-				job_id: state.jobId,
-				mapping: JSON.stringify( mapping ),
-				save_template: $( '#wci-save-template' ).checked
-					? '1'
-					: '0',
-				template_name: $( '#wci-template-name' ).value,
-			};
-
-			ajaxPost( 'wci_save_mapping', data, ( result ) => {
-				renderSummary( result.summary );
-				goToStep( 4 );
-			} );
-		} );
-	}
-
-	// Step 4: Import.
-	function renderSummary( summary ) {
-		$( '#wci-summary' ).innerHTML =
-			'<table class="form-table">' +
-			'<tr><th>Post Type</th><td>' +
-			escHtml( summary.post_type ) +
-			'</td></tr>' +
-			'<tr><th>Mode</th><td>' +
-			escHtml( summary.mode ) +
-			'</td></tr>' +
-			( summary.match_field
-				? '<tr><th>Match Field</th><td>' +
-					escHtml( summary.match_field ) +
-					'</td></tr>'
-				: '' ) +
-			'<tr><th>Total Rows</th><td>' +
-			summary.total_rows +
-			'</td></tr>' +
-			'<tr><th>Mapped Fields</th><td>' +
-			summary.mappings +
-			'</td></tr>' +
-			'</table>';
-	}
-
+	// Import step: start import and poll progress.
 	function initImport() {
-		$( '#wci-start-btn' ).addEventListener( 'click', () => {
-			$( '#wci-start-btn' ).style.display = 'none';
+		const startBtn = $( '#wci-start-btn' );
+		if ( ! startBtn ) return;
+
+		startBtn.addEventListener( 'click', () => {
+			startBtn.style.display = 'none';
 
 			ajaxPost(
 				'wci_start_import',
-				{ job_id: state.jobId },
+				{ job_id: wciData.jobId },
 				() => {
 					$( '#wci-progress' ).style.display = '';
 					startPolling();
@@ -520,20 +347,16 @@
 	}
 
 	function startPolling() {
-		state.pollInterval = setInterval( () => {
+		const interval = setInterval( () => {
 			ajaxPost(
 				'wci_job_status',
-				{ job_id: state.jobId },
+				{ job_id: wciData.jobId },
 				( data ) => {
 					const total = data.total_rows || 1;
-					const done =
-						data.processed_rows + data.failed_rows;
-					const pct = Math.round(
-						( done / total ) * 100
-					);
+					const done = data.processed_rows + data.failed_rows;
+					const pct = Math.round( ( done / total ) * 100 );
 
-					$( '.wci-progress-bar' ).style.width =
-						pct + '%';
+					$( '.wci-progress-bar' ).style.width = pct + '%';
 					$( '#wci-progress-text' ).textContent =
 						done +
 						' / ' +
@@ -546,9 +369,16 @@
 						data.status === 'completed' ||
 						data.status === 'failed'
 					) {
-						clearInterval( state.pollInterval );
+						clearInterval( interval );
 						$( '#wci-progress' ).style.display = 'none';
 						$( '#wci-complete' ).style.display = '';
+
+						const detailUrl = wciData.ajaxUrl.replace(
+							'admin-ajax.php',
+							'admin.php?page=wp-content-importer&view=job&job_id=' +
+								wciData.jobId
+						);
+
 						$( '#wci-complete-summary' ).innerHTML =
 							'<p>Import ' +
 							data.status +
@@ -558,11 +388,7 @@
 							data.failed_rows +
 							' failed.</p>' +
 							'<a href="' +
-							wciData.ajaxUrl.replace(
-								'admin-ajax.php',
-								'admin.php?page=wp-content-importer&view=job&job_id=' +
-									state.jobId
-							) +
+							detailUrl +
 							'" class="button">View Details</a>';
 					}
 				}
@@ -570,79 +396,10 @@
 		}, 5000 );
 	}
 
-	function initStepNavigation() {
-		$$( '.wci-step' ).forEach( ( el ) => {
-			el.addEventListener( 'click', () => {
-				const target = Number( el.dataset.step );
-
-				// Allow clicking completed steps to go back,
-				// but not forward beyond the highest reached step.
-				if ( target < state.currentStep && target >= 1 ) {
-					goToStep( target );
-				}
-			} );
-		} );
-	}
-
-	function loadExistingJob( jobId ) {
-		ajaxPost( 'wci_get_job', { job_id: jobId }, ( data ) => {
-			state.jobId = data.job_id;
-			state.headers = data.headers || [];
-			state.fields = data.fields || [];
-			state.preview = [];
-
-			$( '#wci-name' ).value = data.name || '';
-
-			loadPostTypes( () => {
-				$( '#wci-post-type' ).value = data.post_type || '';
-				$( '#wci-mode' ).value = data.mode || 'create';
-				$( '#wci-mode' ).dispatchEvent( new Event( 'change' ) );
-
-				if ( data.match_field ) {
-					ajaxPost(
-						'wci_get_fields',
-						{ post_type: data.post_type },
-						( fields ) => {
-							const select = $( '#wci-match-field' );
-							select.innerHTML = '';
-							fields.forEach( ( field ) => {
-								const opt =
-									document.createElement( 'option' );
-								opt.value = field.key;
-								opt.textContent =
-									field.name +
-									' (' +
-									field.group +
-									')';
-								select.appendChild( opt );
-							} );
-							select.value = data.match_field;
-						}
-					);
-				}
-			} );
-
-			// Pre-build mapping if there is one.
-			if ( data.mapping ) {
-				state.editMapping = data.mapping;
-			}
-
-			goToStep( 2 );
-		} );
-	}
-
-	// Init.
+	// Init: detect which step is active and initialize only what's needed.
 	document.addEventListener( 'DOMContentLoaded', () => {
-		if ( ! $( '#wci-wizard' ) ) return;
-
-		initStepNavigation();
-		initUpload();
 		initConfigure();
 		initMapping();
 		initImport();
-
-		if ( Number( wciData.editJobId ) ) {
-			loadExistingJob( wciData.editJobId );
-		}
 	} );
 } )();

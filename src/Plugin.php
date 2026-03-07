@@ -9,6 +9,7 @@ namespace AchttienVijftien\WpContentImporter;
 
 use AchttienVijftien\WpContentImporter\Admin\AdminPage;
 use AchttienVijftien\WpContentImporter\Admin\AjaxHandler;
+use AchttienVijftien\WpContentImporter\Admin\FormHandler;
 use AchttienVijftien\WpContentImporter\Database\Migrator;
 use AchttienVijftien\WpContentImporter\Import\CronHandler;
 use AchttienVijftien\WpContentImporter\Mapping\Template;
@@ -53,6 +54,7 @@ class Plugin {
 		if ( is_admin() ) {
 			new AdminPage();
 			new AjaxHandler();
+			new FormHandler();
 		}
 
 		new CronHandler();

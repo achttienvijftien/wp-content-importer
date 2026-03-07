@@ -7,11 +7,13 @@
 }
 
 .wci-step {
+	display: inline-block;
 	padding: 10px 20px;
 	color: #787c82;
 	border-bottom: 2px solid transparent;
 	margin-bottom: -2px;
 	cursor: default;
+	text-decoration: none;
 }
 
 .wci-step.active {
@@ -20,12 +22,12 @@
 	font-weight: 600;
 }
 
-.wci-step.completed {
+a.wci-step.completed {
 	color: #00a32a;
 	cursor: pointer;
 }
 
-.wci-step.completed:hover {
+a.wci-step.completed:hover {
 	text-decoration: underline;
 }
 

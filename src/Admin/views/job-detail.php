@@ -28,7 +28,7 @@ $page_url = admin_url( 'admin.php?page=wp-content-importer' );
 	<?php
 	if ( in_array( $job->status, [ 'draft', 'failed', 'completed' ], true ) ) :
 		$edit_args = [
-			'view'   => 'edit',
+			'step'   => 'configure',
 			'job_id' => $job->id,
 		];
 		?>
