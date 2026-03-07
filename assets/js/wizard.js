@@ -641,7 +641,7 @@
 		initMapping();
 		initImport();
 
-		if ( wciData.editJobId ) {
+		if ( Number( wciData.editJobId ) ) {
 			loadExistingJob( wciData.editJobId );
 		}
 	} );
