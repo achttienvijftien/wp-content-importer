@@ -60,7 +60,7 @@ class AjaxHandler {
 			wp_send_json_error( [ 'message' => $e->getMessage() ] );
 		}
 
-		$name  = pathinfo( $file['name'], PATHINFO_FILENAME );
+		$name  = $file['name'];
 		$job   = ImportJob::create( [ 'name' => sanitize_text_field( $name ) ] );
 		$count = ImportRow::bulk_insert( $job->id, $result['rows'] );
 		$job->update( [ 'total_rows' => $count ] );
