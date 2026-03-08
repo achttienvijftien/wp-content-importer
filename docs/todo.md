@@ -1,0 +1,32 @@
+- [ ] add taxonomy support (after CPT support is feature-complete)
+- [ ] add term mapping support to CPT import
+- [ ] use wp-env for running tests
+- [ ] multi site support
+- [ ] CLI support
+- [ ] remote file import
+- [ ] periodic import
+- [x] add custom meta (key) field in mapping
+- [x] upsert mode (using a (combination of) identifier/match field(s))
+- [x] wrap mapping field preview if content is too long
+- [x] when editing you should be able to navigate between wizard steps
+- [ ] refactor JS to React
+- [ ] add option to rerun an import
+- [x] add name to import (default: use filename)
+- [x] add setting with batch size
+- [x] change mapping afterwards
+- [x] go back in the wizard to update a specific setting
+- [x] remove automatically added 1password functionality from mapping input field
+- [x] add filters / actions so that plugins can hook into the import / mapping / etc. process
+- [x] altering content in mapping (using pipe modifiers — see plans/2026-03-07-pipe-modifiers-design.md)
+- [x] conditional mapping (ternary syntax in templates, e.g., {status == 'gepubliceerd' ? 'publish' : 'draft'})
+- [ ] `if` modifier shorthand for simple value mapping (e.g., {status|if('gepubliceerd', 'publish', 'draft')})
+- [ ] conditional operators: `starts with`, `ends with`, `has some` (contains)
+- [ ] conditional logical operators: `and`, `or`, `not`
+- [ ] column splitting (split a single source column into multiple values, e.g., "Full Name" into first/last)
+- [x] show only fields in mapping that are related to the post type (if possible)
+- [ ] add filtering of rows to process
+- [ ] add option to remove rows in database after import (making reimporting impossible so that function should be disabled in
+  that case)
+- [ ] featured image / media handling (set thumbnail from URL or file path)
+- [x] post format support for CPTs that use post formats
+- [x] menu_order support for hierarchical CPTs

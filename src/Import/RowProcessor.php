@@ -35,6 +35,32 @@ class RowProcessor {
 	];
 
 	/**
+	 * Fields handled separately from core post args and meta.
+	 *
+	 * @var string[]
+	 */
+	private const SPECIAL_FIELDS = [
+		'post_format',
+	];
+
+	/**
+	 * Valid post formats.
+	 *
+	 * @var string[]
+	 */
+	private const VALID_POST_FORMATS = [
+		'aside',
+		'gallery',
+		'link',
+		'image',
+		'quote',
+		'status',
+		'video',
+		'audio',
+		'chat',
+	];
+
+	/**
 	 * Valid post statuses for import.
 	 *
 	 * @var string[]
@@ -80,6 +106,7 @@ class RowProcessor {
 
 			$this->set_acf_fields( $post_id, $mapped );
 			$this->set_meta_fields( $post_id, $mapped );
+			$this->set_post_format( $post_id, $mapped );
 
 			do_action( 'wci_after_process_row', $post_id, $mapped, $row, $job );
 
@@ -354,8 +381,8 @@ class RowProcessor {
 	 */
 	private function set_meta_fields( int $post_id, array $mapped ): void {
 		foreach ( $mapped as $key => $entry ) {
-			// Skip core fields and ACF fields.
-			if ( in_array( $key, self::CORE_FIELDS, true ) || str_starts_with( $key, 'field_' ) ) {
+			// Skip core fields, ACF fields, and special fields.
+			if ( in_array( $key, self::CORE_FIELDS, true ) || in_array( $key, self::SPECIAL_FIELDS, true ) || str_starts_with( $key, 'field_' ) ) {
 				continue;
 			}
 
@@ -365,6 +392,37 @@ class RowProcessor {
 
 			update_post_meta( $post_id, sanitize_text_field( $key ), $entry['value'] );
 		}
+	}
+
+	/**
+	 * Set the post format if mapped.
+	 *
+	 * @param int   $post_id Post ID.
+	 * @param array $mapped  Mapped field data.
+	 *
+	 * @return void
+	 */
+	private function set_post_format( int $post_id, array $mapped ): void {
+		if ( ! isset( $mapped['post_format'] ) || '' === $mapped['post_format']['value'] ) {
+			return;
+		}
+
+		$format = $this->validate_post_format( $mapped['post_format']['value'] );
+
+		set_post_format( $post_id, 'standard' === $format ? '' : $format );
+	}
+
+	/**
+	 * Validate and normalise a post format value.
+	 *
+	 * @param string $value The raw format value.
+	 *
+	 * @return string Valid post format, defaults to 'standard'.
+	 */
+	private function validate_post_format( string $value ): string {
+		$value = strtolower( trim( $value ) );
+
+		return in_array( $value, self::VALID_POST_FORMATS, true ) ? $value : 'standard';
 	}
 
 	/**

@@ -95,4 +95,20 @@ class CoreFieldProviderTest extends TestCase {
 		$this->assertNotEmpty( $field );
 		$this->assertSame( 'integer', $field[0]['type'] );
 	}
+
+	public function test_includes_post_format_when_supported(): void {
+		register_post_type( 'wci_with_formats', [ 'supports' => [ 'title', 'post-formats' ] ] );
+
+		$provider = new CoreFieldProvider();
+		$keys     = array_column( $provider->get_fields( 'wci_with_formats' ), 'key' );
+
+		$this->assertContains( 'post_format', $keys );
+	}
+
+	public function test_excludes_post_format_when_not_supported(): void {
+		$provider = new CoreFieldProvider();
+		$keys     = array_column( $provider->get_fields( 'page' ), 'key' );
+
+		$this->assertNotContains( 'post_format', $keys );
+	}
 }

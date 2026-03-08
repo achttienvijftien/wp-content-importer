@@ -74,6 +74,12 @@ class CoreFieldProvider implements FieldProviderInterface {
 			'type'    => 'integer',
 			'feature' => 'page-attributes',
 		],
+		[
+			'name'    => 'Post format',
+			'key'     => 'post_format',
+			'type'    => 'select',
+			'feature' => 'post-formats',
+		],
 	];
 
 	/**

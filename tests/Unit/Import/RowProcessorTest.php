@@ -341,4 +341,30 @@ class RowProcessorTest extends TestCase {
 
 		$this->assertArrayNotHasKey( 'menu_order', $args );
 	}
+
+	public function test_build_post_args_excludes_post_format(): void {
+		$mapped = [
+			'post_title'  => [ 'value' => 'Test', 'type' => 'text' ],
+			'post_format' => [ 'value' => 'gallery', 'type' => 'text' ],
+		];
+
+		$args = $this->build_args( $mapped );
+
+		$this->assertArrayNotHasKey( 'post_format', $args );
+	}
+
+	public function test_validate_post_format_returns_valid_format(): void {
+		$method = new ReflectionMethod( RowProcessor::class, 'validate_post_format' );
+
+		$this->assertSame( 'gallery', $method->invoke( $this->processor, 'gallery' ) );
+		$this->assertSame( 'video', $method->invoke( $this->processor, 'video' ) );
+		$this->assertSame( 'aside', $method->invoke( $this->processor, '  Aside  ' ) );
+	}
+
+	public function test_validate_post_format_returns_standard_for_invalid(): void {
+		$method = new ReflectionMethod( RowProcessor::class, 'validate_post_format' );
+
+		$this->assertSame( 'standard', $method->invoke( $this->processor, 'nonexistent' ) );
+		$this->assertSame( 'standard', $method->invoke( $this->processor, '' ) );
+	}
 }
