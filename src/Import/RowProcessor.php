@@ -109,7 +109,7 @@ class RowProcessor {
 
 			// Replace {column_name} placeholders with actual row values.
 			$value = preg_replace_callback(
-				'/\{([^}]+)\}/',
+				'/\{([^{}]*(?:\{[^}]*\}[^{}]*)*)\}/',
 				function ( $matches ) use ( $data ) {
 					return $this->pipeline->process( $matches[1], $data );
 				},

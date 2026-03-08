@@ -274,16 +274,104 @@
 			}
 			const row = preview[ 0 ];
 			let previewHtml = '';
-			const parts = input.value.split( /(\{[^}]+\})/ );
+
+			// Split on outer braces, supporting one level of nesting.
+			const parts = input.value.split(
+				/(\{[^{}]*(?:\{[^}]*\}[^{}]*)*\})/
+			);
 
 			parts.forEach( ( part ) => {
-				const match = part.match( /^\{([^}]+)\}$/ );
+				// Match outer braces.
+				const match = part.match(
+					/^\{([^{}]*(?:\{[^}]*\}[^{}]*)*)\}$/
+				);
 				if ( ! match ) {
 					previewHtml += escHtml( part );
 					return;
 				}
 
-				const segments = match[ 1 ].split( '|' );
+				const inner = match[ 1 ];
+
+				// Check if this is a ternary (contains ? ).
+				const ternaryMatch = inner.match(
+					/^(\w+)\s+(==|!=|<=|>=|<|>|is\s+not\s+empty|is\s+empty)\s*(.*?)\s+\?\s+([\s\S]+)$/
+				);
+
+				if ( ternaryMatch ) {
+					const col = ternaryMatch[ 1 ];
+					const op = ternaryMatch[ 2 ];
+					const rightRaw = ternaryMatch[ 3 ].trim();
+					const branchesStr = ternaryMatch[ 4 ];
+
+					const leftVal =
+						row[ col ] !== undefined ? row[ col ] : '';
+
+					// Resolve right side.
+					let rightVal = rightRaw;
+					const quotedRight = rightRaw.match( /^'(.*)'$/ );
+					if ( quotedRight ) {
+						rightVal = quotedRight[ 1 ];
+					} else if ( rightRaw && row[ rightRaw ] !== undefined ) {
+						rightVal = row[ rightRaw ];
+					}
+
+					// Evaluate condition.
+					let condResult = false;
+					if ( op === '==' ) condResult = leftVal === rightVal;
+					else if ( op === '!=' ) condResult = leftVal !== rightVal;
+					else if ( op === '>' )
+						condResult = parseFloat( leftVal ) > parseFloat( rightVal );
+					else if ( op === '<' )
+						condResult = parseFloat( leftVal ) < parseFloat( rightVal );
+					else if ( op === '>=' )
+						condResult = parseFloat( leftVal ) >= parseFloat( rightVal );
+					else if ( op === '<=' )
+						condResult = parseFloat( leftVal ) <= parseFloat( rightVal );
+					else if ( op.replace( /\s+/g, ' ' ) === 'is empty' )
+						condResult = leftVal === '';
+					else if ( op.replace( /\s+/g, ' ' ) === 'is not empty' )
+						condResult = leftVal !== '';
+
+					// Split branches.
+					const branchParts = branchesStr.split( /\s+:\s+/ );
+					const thenBranch = branchParts[ 0 ] || '';
+					const elseBranch = branchParts[ 1 ] || '';
+					const winningBranch = condResult ? thenBranch : elseBranch;
+
+					// Resolve winning branch: strip quotes or resolve placeholders.
+					let branchDisplay = winningBranch;
+					const quotedBranch = winningBranch.match( /^'(.*)'$/ );
+					if ( quotedBranch ) {
+						branchDisplay = quotedBranch[ 1 ];
+					} else if ( /^\w+$/.test( winningBranch ) && row[ winningBranch ] !== undefined ) {
+						branchDisplay = row[ winningBranch ];
+					} else {
+						branchDisplay = winningBranch.replace(
+							/\{([^}]+)\}/g,
+							( m, c ) => {
+								const segs = c.split( '|' );
+								const colName = segs[ 0 ].trim();
+								return row[ colName ] !== undefined
+									? row[ colName ]
+									: colName;
+							}
+						);
+					}
+
+					previewHtml += escHtml( branchDisplay );
+
+					// Condition pill.
+					const condDisplay =
+						col + ' ' + op + ( rightRaw ? ' ' + rightRaw : '' );
+					previewHtml +=
+						' <span class="wci-condition-pill">IF ' +
+						escHtml( condDisplay ) +
+						'</span>';
+					return;
+				}
+
+				// Not a ternary — regular placeholder with optional modifiers.
+				const segments = inner.split( '|' );
 				const col = segments[ 0 ].trim();
 				const colValue = row[ col ] !== undefined ? row[ col ] : col;
 				previewHtml += escHtml( colValue );

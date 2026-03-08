@@ -260,4 +260,59 @@ class RowProcessorTest extends TestCase {
 
 		$this->assertSame( 'Jan De Smet', $result['post_title']['value'] );
 	}
+
+	public function test_ternary_in_mapping_template(): void {
+		$data    = [ 'status' => 'gepubliceerd' ];
+		$mapping = [
+			'post_status' => [ 'template' => "{status == 'gepubliceerd' ? 'publish' : 'draft'}", 'type' => 'text' ],
+		];
+
+		$result = $this->map( $data, $mapping );
+
+		$this->assertSame( 'publish', $result['post_status']['value'] );
+	}
+
+	public function test_ternary_false_branch_in_mapping(): void {
+		$data    = [ 'status' => 'concept' ];
+		$mapping = [
+			'post_status' => [ 'template' => "{status == 'gepubliceerd' ? 'publish' : 'draft'}", 'type' => 'text' ],
+		];
+
+		$result = $this->map( $data, $mapping );
+
+		$this->assertSame( 'draft', $result['post_status']['value'] );
+	}
+
+	public function test_ternary_with_nested_placeholders_in_mapping(): void {
+		$data    = [ 'type' => 'person', 'voornaam' => 'Jan', 'achternaam' => 'De Smet', 'bedrijfsnaam' => 'Acme' ];
+		$mapping = [
+			'post_title' => [ 'template' => "{type == 'person' ? {voornaam} {achternaam} : {bedrijfsnaam}}", 'type' => 'text' ],
+		];
+
+		$result = $this->map( $data, $mapping );
+
+		$this->assertSame( 'Jan De Smet', $result['post_title']['value'] );
+	}
+
+	public function test_ternary_resolving_to_empty_skips_field(): void {
+		$data    = [ 'status' => 'concept' ];
+		$mapping = [
+			'post_excerpt' => [ 'template' => "{status == 'gepubliceerd' ? 'excerpt text'}", 'type' => 'text' ],
+		];
+
+		$result = $this->map( $data, $mapping );
+
+		$this->assertArrayNotHasKey( 'post_excerpt', $result );
+	}
+
+	public function test_ternary_alongside_regular_placeholders(): void {
+		$data    = [ 'voornaam' => 'Jan', 'type' => 'vip' ];
+		$mapping = [
+			'post_title' => [ 'template' => "{voornaam} - {type == 'vip' ? 'VIP' : 'Regular'}", 'type' => 'text' ],
+		];
+
+		$result = $this->map( $data, $mapping );
+
+		$this->assertSame( 'Jan - VIP', $result['post_title']['value'] );
+	}
 }

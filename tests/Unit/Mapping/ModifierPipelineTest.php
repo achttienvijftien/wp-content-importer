@@ -285,4 +285,108 @@ class ModifierPipelineTest extends TestCase {
 
 		$this->assertSame( '', $this->pipeline->process( 'v|striptags', $row ) );
 	}
+
+	// --- Ternary / conditional tests ---
+
+	public function test_ternary_equals_true_branch(): void {
+		$row = [ 'status' => 'gepubliceerd' ];
+
+		$this->assertSame( 'publish', $this->pipeline->process( "status == 'gepubliceerd' ? 'publish' : 'draft'", $row ) );
+	}
+
+	public function test_ternary_equals_false_branch(): void {
+		$row = [ 'status' => 'concept' ];
+
+		$this->assertSame( 'draft', $this->pipeline->process( "status == 'gepubliceerd' ? 'publish' : 'draft'", $row ) );
+	}
+
+	public function test_ternary_not_equals(): void {
+		$row = [ 'status' => 'concept' ];
+
+		$this->assertSame( 'not published', $this->pipeline->process( "status != 'gepubliceerd' ? 'not published' : 'published'", $row ) );
+	}
+
+	public function test_ternary_with_column_placeholder_in_branch(): void {
+		$row = [ 'type' => 'person', 'voornaam' => 'Jan', 'bedrijfsnaam' => 'Acme' ];
+
+		$this->assertSame( 'Jan', $this->pipeline->process( "type == 'person' ? {voornaam} : {bedrijfsnaam}", $row ) );
+	}
+
+	public function test_ternary_with_column_placeholder_false_branch(): void {
+		$row = [ 'type' => 'company', 'voornaam' => 'Jan', 'bedrijfsnaam' => 'Acme' ];
+
+		$this->assertSame( 'Acme', $this->pipeline->process( "type == 'company' ? {bedrijfsnaam} : {voornaam}", $row ) );
+	}
+
+	public function test_ternary_with_modifier_in_branch(): void {
+		$row = [ 'type' => 'person', 'name' => 'jan' ];
+
+		$this->assertSame( 'JAN', $this->pipeline->process( "type == 'person' ? {name|upper} : 'unknown'", $row ) );
+	}
+
+	public function test_ternary_is_empty_true(): void {
+		$row = [ 'email' => '' ];
+
+		$this->assertSame( 'no-email', $this->pipeline->process( "email is empty ? 'no-email' : {email}", $row ) );
+	}
+
+	public function test_ternary_is_not_empty(): void {
+		$row = [ 'email' => 'jan@example.com' ];
+
+		$this->assertSame( 'jan@example.com', $this->pipeline->process( "email is not empty ? {email} : 'no-reply@example.com'", $row ) );
+	}
+
+	public function test_ternary_greater_than(): void {
+		$row = [ 'price' => '200' ];
+
+		$this->assertSame( 'expensive', $this->pipeline->process( "price > '100' ? 'expensive' : 'affordable'", $row ) );
+	}
+
+	public function test_ternary_less_than_or_equal(): void {
+		$row = [ 'stock' => '0' ];
+
+		$this->assertSame( 'out-of-stock', $this->pipeline->process( "stock <= '0' ? 'out-of-stock' : 'in-stock'", $row ) );
+	}
+
+	public function test_ternary_bare_column_ref_on_right_side(): void {
+		$row = [ 'col1' => 'hello', 'col2' => 'hello' ];
+
+		$this->assertSame( 'match', $this->pipeline->process( "col1 == col2 ? 'match' : 'no match'", $row ) );
+	}
+
+	public function test_ternary_no_else_branch_defaults_to_empty(): void {
+		$row = [ 'status' => 'concept' ];
+
+		$this->assertSame( '', $this->pipeline->process( "status == 'gepubliceerd' ? 'publish'", $row ) );
+	}
+
+	public function test_ternary_no_else_branch_true(): void {
+		$row = [ 'status' => 'gepubliceerd' ];
+
+		$this->assertSame( 'publish', $this->pipeline->process( "status == 'gepubliceerd' ? 'publish'", $row ) );
+	}
+
+	public function test_non_ternary_still_works(): void {
+		$row = [ 'name' => 'jan' ];
+
+		$this->assertSame( 'JAN', $this->pipeline->process( 'name|upper', $row ) );
+	}
+
+	public function test_ternary_with_multiple_placeholders_in_branch(): void {
+		$row = [ 'type' => 'person', 'voornaam' => 'Jan', 'achternaam' => 'De Smet', 'bedrijfsnaam' => 'Acme' ];
+
+		$this->assertSame( 'Jan De Smet', $this->pipeline->process( "type == 'person' ? {voornaam} {achternaam} : {bedrijfsnaam}", $row ) );
+	}
+
+	public function test_ternary_bare_column_ref_in_branch(): void {
+		$row = [ 'voornaam' => 'Harry' ];
+
+		$this->assertSame( 'Henk', $this->pipeline->process( "voornaam == 'Harry' ? 'Henk' : voornaam", $row ) );
+	}
+
+	public function test_ternary_bare_column_ref_in_else_branch(): void {
+		$row = [ 'voornaam' => 'Jan' ];
+
+		$this->assertSame( 'Jan', $this->pipeline->process( "voornaam == 'Harry' ? 'Henk' : voornaam", $row ) );
+	}
 }

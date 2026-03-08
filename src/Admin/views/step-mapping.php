@@ -40,7 +40,7 @@ $template_checked   = 'template_exists' === $mapping_error;
 <p>
 	<?php
 	esc_html_e(
-		'Click a column to insert it. Use {column} syntax to combine columns, or type a static value. Use {column|modifier} to transform values.',
+		'Click a column to insert it. Use {column} syntax to combine columns, or type a static value. Use {column|modifier} to transform values. Use {column == \'value\' ? \'then\' : \'else\'} for conditional values.',
 		'wp-content-importer'
 	);
 	?>
@@ -69,8 +69,28 @@ $template_checked   = 'template_exists' === $mapping_error;
 			<?php endforeach; ?>
 		</tbody>
 	</table>
+	<h4 style="margin-top: 1em;"><?php esc_html_e( 'Conditional syntax', 'wp-content-importer' ); ?></h4>
+	<table class="widefat striped wci-modifier-ref">
+		<thead>
+			<tr>
+				<th><?php esc_html_e( 'Operator', 'wp-content-importer' ); ?></th>
+				<th><?php esc_html_e( 'Example', 'wp-content-importer' ); ?></th>
+				<th><?php esc_html_e( 'Description', 'wp-content-importer' ); ?></th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr><td><code>==</code></td><td><code>{status == 'yes' ? 'publish' : 'draft'}</code></td><td><?php esc_html_e( 'Equals', 'wp-content-importer' ); ?></td></tr>
+			<tr><td><code>!=</code></td><td><code>{type != 'page' ? 'post' : 'page'}</code></td><td><?php esc_html_e( 'Not equals', 'wp-content-importer' ); ?></td></tr>
+			<tr><td><code>&gt;</code></td><td><code>{price > '100' ? 'expensive' : 'cheap'}</code></td><td><?php esc_html_e( 'Greater than', 'wp-content-importer' ); ?></td></tr>
+			<tr><td><code>&lt;</code></td><td><code>{stock < '10' ? 'low' : 'ok'}</code></td><td><?php esc_html_e( 'Less than', 'wp-content-importer' ); ?></td></tr>
+			<tr><td><code>&gt;=</code></td><td><code>{score >= '50' ? 'pass' : 'fail'}</code></td><td><?php esc_html_e( 'Greater than or equal', 'wp-content-importer' ); ?></td></tr>
+			<tr><td><code>&lt;=</code></td><td><code>{stock <= '0' ? 'out' : 'in'}</code></td><td><?php esc_html_e( 'Less than or equal', 'wp-content-importer' ); ?></td></tr>
+			<tr><td><code>is empty</code></td><td><code>{email is empty ? 'n/a' : {email}}</code></td><td><?php esc_html_e( 'Value is empty', 'wp-content-importer' ); ?></td></tr>
+			<tr><td><code>is not empty</code></td><td><code>{bio is not empty ? {bio} : 'No bio'}</code></td><td><?php esc_html_e( 'Value is not empty', 'wp-content-importer' ); ?></td></tr>
+		</tbody>
+	</table>
 	<p class="description">
-		<?php esc_html_e( 'Chain modifiers with pipes: {name|trim|upper}. Arguments can be static (quoted) or column references (bare).', 'wp-content-importer' ); ?>
+		<?php esc_html_e( 'Chain modifiers with pipes: {name|trim|upper}. Arguments can be static (quoted) or column references (bare). Conditionals: {column == \'value\' ? \'then\' : \'else\'}. The else branch is optional.', 'wp-content-importer' ); ?>
 	</p>
 </details>
 
