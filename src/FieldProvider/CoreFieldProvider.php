@@ -68,6 +68,12 @@ class CoreFieldProvider implements FieldProviderInterface {
 			'type'    => 'integer',
 			'feature' => 'page-attributes',
 		],
+		[
+			'name'    => 'Menu order',
+			'key'     => 'menu_order',
+			'type'    => 'integer',
+			'feature' => 'page-attributes',
+		],
 	];
 
 	/**

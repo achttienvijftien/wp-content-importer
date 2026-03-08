@@ -72,4 +72,27 @@ class CoreFieldProviderTest extends TestCase {
 		$this->assertContains( 'post_date', $keys );
 		$this->assertContains( 'post_name', $keys );
 	}
+
+	public function test_includes_menu_order_for_page(): void {
+		$provider = new CoreFieldProvider();
+		$keys     = array_column( $provider->get_fields( 'page' ), 'key' );
+
+		$this->assertContains( 'menu_order', $keys );
+	}
+
+	public function test_excludes_menu_order_for_post(): void {
+		$provider = new CoreFieldProvider();
+		$keys     = array_column( $provider->get_fields( 'post' ), 'key' );
+
+		$this->assertNotContains( 'menu_order', $keys );
+	}
+
+	public function test_menu_order_has_integer_type(): void {
+		$provider = new CoreFieldProvider();
+		$fields   = $provider->get_fields( 'page' );
+		$field    = array_values( array_filter( $fields, fn( $f ) => 'menu_order' === $f['key'] ) );
+
+		$this->assertNotEmpty( $field );
+		$this->assertSame( 'integer', $field[0]['type'] );
+	}
 }

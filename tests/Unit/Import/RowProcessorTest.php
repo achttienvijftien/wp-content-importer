@@ -11,16 +11,22 @@ class RowProcessorTest extends TestCase {
 
 	private RowProcessor $processor;
 	private ReflectionMethod $map_values;
+	private ReflectionMethod $build_post_args;
 
 	protected function set_up(): void {
 		parent::set_up();
 		ModifierRegistry::instance()->register_defaults();
-		$this->processor  = new RowProcessor();
-		$this->map_values = new ReflectionMethod( RowProcessor::class, 'map_values' );
+		$this->processor       = new RowProcessor();
+		$this->map_values      = new ReflectionMethod( RowProcessor::class, 'map_values' );
+		$this->build_post_args = new ReflectionMethod( RowProcessor::class, 'build_post_args' );
 	}
 
 	private function map( array $data, array $mapping ): array {
 		return $this->map_values->invoke( $this->processor, $data, $mapping );
+	}
+
+	private function build_args( array $mapped, string $post_type = 'post' ): array {
+		return $this->build_post_args->invoke( $this->processor, $mapped, $post_type );
 	}
 
 	public function test_single_column_placeholder(): void {
@@ -314,5 +320,25 @@ class RowProcessorTest extends TestCase {
 		$result = $this->map( $data, $mapping );
 
 		$this->assertSame( 'Jan - VIP', $result['post_title']['value'] );
+	}
+
+	public function test_build_post_args_includes_menu_order_as_integer(): void {
+		$mapped = [
+			'menu_order' => [ 'value' => '5', 'type' => 'integer' ],
+		];
+
+		$args = $this->build_args( $mapped );
+
+		$this->assertSame( 5, $args['menu_order'] );
+	}
+
+	public function test_build_post_args_skips_empty_menu_order(): void {
+		$mapped = [
+			'menu_order' => [ 'value' => '', 'type' => 'integer' ],
+		];
+
+		$args = $this->build_args( $mapped );
+
+		$this->assertArrayNotHasKey( 'menu_order', $args );
 	}
 }

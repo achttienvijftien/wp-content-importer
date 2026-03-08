@@ -31,6 +31,7 @@ class RowProcessor {
 		'post_author',
 		'post_name',
 		'post_parent',
+		'menu_order',
 	];
 
 	/**
@@ -157,7 +158,8 @@ class RowProcessor {
 				'post_date'   => gmdate( 'Y-m-d H:i:s', strtotime( $value ) ),
 				'post_author' => $this->resolve_author( $value ),
 				'post_status' => $this->validate_status( $value ),
-				'post_parent' => (int) $value,
+				'post_parent',
+				'menu_order'  => (int) $value,
 				default       => $value,
 			};
 		}
