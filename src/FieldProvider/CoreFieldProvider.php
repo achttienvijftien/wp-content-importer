@@ -80,6 +80,12 @@ class CoreFieldProvider implements FieldProviderInterface {
 			'type'    => 'select',
 			'feature' => 'post-formats',
 		],
+		[
+			'name'    => 'Featured image',
+			'key'     => '_thumbnail',
+			'type'    => 'text',
+			'feature' => 'thumbnail',
+		],
 	];
 
 	/**

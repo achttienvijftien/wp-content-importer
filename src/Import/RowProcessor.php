@@ -41,6 +41,7 @@ class RowProcessor {
 	 */
 	private const SPECIAL_FIELDS = [
 		'post_format',
+		'_thumbnail',
 	];
 
 	/**
@@ -107,6 +108,7 @@ class RowProcessor {
 			$this->set_acf_fields( $post_id, $mapped );
 			$this->set_meta_fields( $post_id, $mapped );
 			$this->set_post_format( $post_id, $mapped );
+			$this->set_thumbnail( $post_id, $mapped );
 
 			do_action( 'wci_after_process_row', $post_id, $mapped, $row, $job );
 
@@ -423,6 +425,48 @@ class RowProcessor {
 		$value = strtolower( trim( $value ) );
 
 		return in_array( $value, self::VALID_POST_FORMATS, true ) ? $value : 'standard';
+	}
+
+	/**
+	 * Set the featured image (post thumbnail) if mapped.
+	 *
+	 * Accepts an attachment ID (numeric) or a URL to sideload.
+	 *
+	 * @param int   $post_id Post ID.
+	 * @param array $mapped  Mapped field data.
+	 *
+	 * @return void
+	 */
+	private function set_thumbnail( int $post_id, array $mapped ): void {
+		if ( ! isset( $mapped['_thumbnail'] ) || '' === $mapped['_thumbnail']['value'] ) {
+			return;
+		}
+
+		$value = trim( $mapped['_thumbnail']['value'] );
+
+		if ( is_numeric( $value ) ) {
+			$attachment = get_post( (int) $value );
+
+			if ( $attachment && 'attachment' === $attachment->post_type ) {
+				set_post_thumbnail( $post_id, (int) $value );
+			}
+
+			return;
+		}
+
+		if ( ! filter_var( $value, FILTER_VALIDATE_URL ) ) {
+			return;
+		}
+
+		require_once ABSPATH . 'wp-admin/includes/media.php';
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+
+		$attachment_id = media_sideload_image( $value, $post_id, null, 'id' );
+
+		if ( ! is_wp_error( $attachment_id ) ) {
+			set_post_thumbnail( $post_id, $attachment_id );
+		}
 	}
 
 	/**

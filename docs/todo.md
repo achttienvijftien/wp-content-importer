@@ -30,3 +30,4 @@
 - [ ] featured image / media handling (set thumbnail from URL or file path)
 - [x] post format support for CPTs that use post formats
 - [x] menu_order support for hierarchical CPTs
+- [ ] author name resolution

@@ -111,4 +111,20 @@ class CoreFieldProviderTest extends TestCase {
 
 		$this->assertNotContains( 'post_format', $keys );
 	}
+
+	public function test_includes_thumbnail_for_post(): void {
+		$provider = new CoreFieldProvider();
+		$keys     = array_column( $provider->get_fields( 'post' ), 'key' );
+
+		$this->assertContains( '_thumbnail', $keys );
+	}
+
+	public function test_excludes_thumbnail_when_not_supported(): void {
+		register_post_type( 'wci_no_thumb', [ 'supports' => [ 'title' ] ] );
+
+		$provider = new CoreFieldProvider();
+		$keys     = array_column( $provider->get_fields( 'wci_no_thumb' ), 'key' );
+
+		$this->assertNotContains( '_thumbnail', $keys );
+	}
 }

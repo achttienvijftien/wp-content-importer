@@ -367,4 +367,69 @@ class RowProcessorTest extends TestCase {
 		$this->assertSame( 'standard', $method->invoke( $this->processor, 'nonexistent' ) );
 		$this->assertSame( 'standard', $method->invoke( $this->processor, '' ) );
 	}
+
+	public function test_build_post_args_excludes_thumbnail(): void {
+		$mapped = [
+			'post_title' => [ 'value' => 'Test', 'type' => 'text' ],
+			'_thumbnail' => [ 'value' => 'https://example.com/image.jpg', 'type' => 'text' ],
+		];
+
+		$args = $this->build_args( $mapped );
+
+		$this->assertArrayNotHasKey( '_thumbnail', $args );
+	}
+
+	public function test_set_thumbnail_with_attachment_id(): void {
+		$post_id       = wp_insert_post( [ 'post_title' => 'Test', 'post_status' => 'publish' ] );
+		$attachment_id = wp_insert_attachment(
+			[ 'post_title' => 'img', 'post_mime_type' => 'image/jpeg', 'post_status' => 'inherit' ],
+			'test.jpg',
+			$post_id
+		);
+
+		$method = new ReflectionMethod( RowProcessor::class, 'set_thumbnail' );
+		$mapped = [
+			'_thumbnail' => [ 'value' => (string) $attachment_id, 'type' => 'text' ],
+		];
+
+		$method->invoke( $this->processor, $post_id, $mapped );
+
+		$this->assertSame( $attachment_id, (int) get_post_thumbnail_id( $post_id ) );
+	}
+
+	public function test_set_thumbnail_skips_invalid_attachment_id(): void {
+		$post_id = wp_insert_post( [ 'post_title' => 'Test', 'post_status' => 'publish' ] );
+
+		$method = new ReflectionMethod( RowProcessor::class, 'set_thumbnail' );
+		$mapped = [
+			'_thumbnail' => [ 'value' => '999999', 'type' => 'text' ],
+		];
+
+		$method->invoke( $this->processor, $post_id, $mapped );
+
+		$this->assertEmpty( get_post_thumbnail_id( $post_id ) );
+	}
+
+	public function test_set_thumbnail_skips_empty_value(): void {
+		$post_id = wp_insert_post( [ 'post_title' => 'Test', 'post_status' => 'publish' ] );
+
+		$method = new ReflectionMethod( RowProcessor::class, 'set_thumbnail' );
+		$mapped = [
+			'_thumbnail' => [ 'value' => '', 'type' => 'text' ],
+		];
+
+		$method->invoke( $this->processor, $post_id, $mapped );
+
+		$this->assertEmpty( get_post_thumbnail_id( $post_id ) );
+	}
+
+	public function test_set_thumbnail_without_mapping_does_nothing(): void {
+		$post_id = wp_insert_post( [ 'post_title' => 'Test', 'post_status' => 'publish' ] );
+
+		$method = new ReflectionMethod( RowProcessor::class, 'set_thumbnail' );
+
+		$method->invoke( $this->processor, $post_id, [] );
+
+		$this->assertEmpty( get_post_thumbnail_id( $post_id ) );
+	}
 }
