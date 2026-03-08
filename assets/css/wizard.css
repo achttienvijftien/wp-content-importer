@@ -167,3 +167,26 @@ a.wci-step.completed:hover {
 .wci-status-processing { background: #e7f5fe; color: #0a4b78; }
 .wci-status-completed, .wci-status-done { background: #edfaef; color: #00a32a; }
 .wci-status-failed { background: #fcf0f1; color: #d63638; }
+
+.wci-modifier-pill {
+	display: inline-block;
+	background: #2271b1;
+	color: #fff;
+	font-size: 11px;
+	line-height: 1;
+	padding: 2px 6px;
+	border-radius: 3px;
+	margin-left: 4px;
+	font-family: monospace;
+}
+
+.wci-modifier-pill::before {
+	content: '\2192  ';
+}
+
+.wci-modifier-ref code {
+	background: #f0f0f1;
+	padding: 2px 5px;
+	border-radius: 3px;
+	font-size: 12px;
+}

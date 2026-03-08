@@ -40,13 +40,39 @@ $template_checked   = 'template_exists' === $mapping_error;
 <p>
 	<?php
 	esc_html_e(
-		'Click a column to insert it. Use {column} syntax to combine columns, or type a static value.',
+		'Click a column to insert it. Use {column} syntax to combine columns, or type a static value. Use {column|modifier} to transform values.',
 		'wp-content-importer'
 	);
 	?>
 </p>
 
 <div id="wci-data-preview"></div>
+
+<details class="wci-preview-details">
+	<summary><?php esc_html_e( 'Available modifiers', 'wp-content-importer' ); ?></summary>
+	<?php $modifiers = \AchttienVijftien\WpContentImporter\Mapping\ModifierRegistry::instance()->get_all(); ?>
+	<table class="widefat striped wci-modifier-ref">
+		<thead>
+			<tr>
+				<th><?php esc_html_e( 'Modifier', 'wp-content-importer' ); ?></th>
+				<th><?php esc_html_e( 'Example', 'wp-content-importer' ); ?></th>
+				<th><?php esc_html_e( 'Description', 'wp-content-importer' ); ?></th>
+			</tr>
+		</thead>
+		<tbody>
+			<?php foreach ( $modifiers as $name => $meta ) : ?>
+				<tr>
+					<td><code><?php echo esc_html( $name ); ?></code></td>
+					<td><code><?php echo esc_html( $meta['example'] ); ?></code></td>
+					<td><?php echo esc_html( $meta['description'] ); ?></td>
+				</tr>
+			<?php endforeach; ?>
+		</tbody>
+	</table>
+	<p class="description">
+		<?php esc_html_e( 'Chain modifiers with pipes: {name|trim|upper}. Arguments can be static (quoted) or column references (bare).', 'wp-content-importer' ); ?>
+	</p>
+</details>
 
 <form method="post" id="wci-mapping-form">
 	<?php wp_nonce_field( 'wci_save_mapping' ); ?>

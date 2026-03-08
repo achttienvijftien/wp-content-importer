@@ -12,6 +12,7 @@ use AchttienVijftien\WpContentImporter\Admin\AjaxHandler;
 use AchttienVijftien\WpContentImporter\Admin\FormHandler;
 use AchttienVijftien\WpContentImporter\Database\Migrator;
 use AchttienVijftien\WpContentImporter\Import\CronHandler;
+use AchttienVijftien\WpContentImporter\Mapping\ModifierRegistry;
 use AchttienVijftien\WpContentImporter\Mapping\Template;
 
 /**
@@ -50,6 +51,8 @@ class Plugin {
 		add_action( 'admin_init', [ Migrator::class, 'maybe_upgrade' ] );
 		add_filter( 'cron_schedules', [ CronHandler::class, 'register_interval' ] );
 		add_action( 'init', [ Template::class, 'register_post_type' ] );
+
+		ModifierRegistry::instance()->register_defaults();
 
 		if ( is_admin() ) {
 			new AdminPage();

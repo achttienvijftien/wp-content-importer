@@ -268,18 +268,35 @@
 
 		const updatePreview = () => {
 			if ( ! preview.length || ! input.value ) {
-				previewEl.textContent = '';
+				previewEl.innerHTML = '';
 				previewEl.style.display = 'none';
 				return;
 			}
 			const row = preview[ 0 ];
-			const resolved = input.value.replace(
-				/\{([^}]+)\}/g,
-				( match, col ) => {
-					return row[ col ] !== undefined ? row[ col ] : match;
+			let previewHtml = '';
+			const parts = input.value.split( /(\{[^}]+\})/ );
+
+			parts.forEach( ( part ) => {
+				const match = part.match( /^\{([^}]+)\}$/ );
+				if ( ! match ) {
+					previewHtml += escHtml( part );
+					return;
 				}
-			);
-			previewEl.textContent = '\u2192 ' + resolved;
+
+				const segments = match[ 1 ].split( '|' );
+				const col = segments[ 0 ].trim();
+				const colValue = row[ col ] !== undefined ? row[ col ] : col;
+				previewHtml += escHtml( colValue );
+
+				for ( let i = 1; i < segments.length; i++ ) {
+					previewHtml +=
+						' <span class="wci-modifier-pill">' +
+						escHtml( segments[ i ].trim() ) +
+						'</span>';
+				}
+			} );
+
+			previewEl.innerHTML = '\u2192 ' + previewHtml;
 			previewEl.style.display = '';
 		};
 

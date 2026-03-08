@@ -8,6 +8,8 @@
 namespace AchttienVijftien\WpContentImporter\Import;
 
 use AchttienVijftien\WpContentImporter\FieldProvider\AcfFieldProvider;
+use AchttienVijftien\WpContentImporter\Mapping\ModifierPipeline;
+use AchttienVijftien\WpContentImporter\Mapping\ModifierRegistry;
 
 /**
  * Processes a single import row: maps values, creates or updates posts,
@@ -43,6 +45,12 @@ class RowProcessor {
 		'private',
 		'future',
 	];
+
+	private ModifierPipeline $pipeline;
+
+	public function __construct( ?ModifierPipeline $pipeline = null ) {
+		$this->pipeline = $pipeline ?? new ModifierPipeline( ModifierRegistry::instance() );
+	}
 
 	/**
 	 * Process a single import row against the given job configuration.
@@ -103,7 +111,7 @@ class RowProcessor {
 			$value = preg_replace_callback(
 				'/\{([^}]+)\}/',
 				function ( $matches ) use ( $data ) {
-					return $data[ $matches[1] ] ?? '';
+					return $this->pipeline->process( $matches[1], $data );
 				},
 				$template
 			);

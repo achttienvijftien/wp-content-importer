@@ -3,6 +3,7 @@
 namespace AchttienVijftien\WpContentImporter\Tests\Unit\Import;
 
 use AchttienVijftien\WpContentImporter\Import\RowProcessor;
+use AchttienVijftien\WpContentImporter\Mapping\ModifierRegistry;
 use ReflectionMethod;
 use Yoast\PHPUnitPolyfills\TestCases\TestCase;
 
@@ -13,6 +14,7 @@ class RowProcessorTest extends TestCase {
 
 	protected function set_up(): void {
 		parent::set_up();
+		ModifierRegistry::instance()->register_defaults();
 		$this->processor  = new RowProcessor();
 		$this->map_values = new ReflectionMethod( RowProcessor::class, 'map_values' );
 	}
@@ -202,5 +204,60 @@ class RowProcessorTest extends TestCase {
 		$this->assertSame( 'Hi {voornaam}', $captured['template'] );
 
 		remove_filter( 'wci_mapped_value', $filter, 10 );
+	}
+
+	public function test_placeholder_with_single_modifier(): void {
+		$data    = [ 'voornaam' => 'jan' ];
+		$mapping = [
+			'post_title' => [ 'template' => '{voornaam|upper}', 'type' => 'text' ],
+		];
+
+		$result = $this->map( $data, $mapping );
+
+		$this->assertSame( 'JAN', $result['post_title']['value'] );
+	}
+
+	public function test_placeholder_with_chained_modifiers(): void {
+		$data    = [ 'voornaam' => '  jan  ' ];
+		$mapping = [
+			'post_title' => [ 'template' => '{voornaam|trim|upper}', 'type' => 'text' ],
+		];
+
+		$result = $this->map( $data, $mapping );
+
+		$this->assertSame( 'JAN', $result['post_title']['value'] );
+	}
+
+	public function test_mixed_placeholders_with_and_without_modifiers(): void {
+		$data    = [ 'voornaam' => 'jan', 'achternaam' => 'de smet' ];
+		$mapping = [
+			'post_title' => [ 'template' => '{voornaam|upper} {achternaam|capitalize}', 'type' => 'text' ],
+		];
+
+		$result = $this->map( $data, $mapping );
+
+		$this->assertSame( 'JAN De smet', $result['post_title']['value'] );
+	}
+
+	public function test_modifier_with_static_arg_in_template(): void {
+		$data    = [ 'datum' => '15-01-2024' ];
+		$mapping = [
+			'post_date' => [ 'template' => "{datum|date('Y-m-d')}", 'type' => 'text' ],
+		];
+
+		$result = $this->map( $data, $mapping );
+
+		$this->assertSame( '2024-01-15', $result['post_date']['value'] );
+	}
+
+	public function test_plain_placeholders_still_work(): void {
+		$data    = [ 'voornaam' => 'Jan', 'achternaam' => 'De Smet' ];
+		$mapping = [
+			'post_title' => [ 'template' => '{voornaam} {achternaam}', 'type' => 'text' ],
+		];
+
+		$result = $this->map( $data, $mapping );
+
+		$this->assertSame( 'Jan De Smet', $result['post_title']['value'] );
 	}
 }
