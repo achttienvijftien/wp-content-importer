@@ -286,6 +286,56 @@ class ModifierPipelineTest extends TestCase {
 		$this->assertSame( '', $this->pipeline->process( 'v|striptags', $row ) );
 	}
 
+	// --- If modifier tests ---
+
+	public function test_if_modifier_match_returns_then_value(): void {
+		$row = [ 'status' => 'gepubliceerd' ];
+
+		$this->assertSame( 'publish', $this->pipeline->process( "status|if('gepubliceerd', 'publish', 'draft')", $row ) );
+	}
+
+	public function test_if_modifier_no_match_returns_else_value(): void {
+		$row = [ 'status' => 'concept' ];
+
+		$this->assertSame( 'draft', $this->pipeline->process( "status|if('gepubliceerd', 'publish', 'draft')", $row ) );
+	}
+
+	public function test_if_modifier_no_else_returns_original_value(): void {
+		$row = [ 'status' => 'concept' ];
+
+		$this->assertSame( 'concept', $this->pipeline->process( "status|if('gepubliceerd', 'publish')", $row ) );
+	}
+
+	public function test_if_modifier_no_else_match_returns_then_value(): void {
+		$row = [ 'status' => 'gepubliceerd' ];
+
+		$this->assertSame( 'publish', $this->pipeline->process( "status|if('gepubliceerd', 'publish')", $row ) );
+	}
+
+	public function test_if_modifier_empty_value_matches_empty_string(): void {
+		$row = [ 'status' => '' ];
+
+		$this->assertSame( 'none', $this->pipeline->process( "status|if('', 'none', 'has-value')", $row ) );
+	}
+
+	public function test_if_modifier_case_sensitive(): void {
+		$row = [ 'status' => 'Gepubliceerd' ];
+
+		$this->assertSame( 'draft', $this->pipeline->process( "status|if('gepubliceerd', 'publish', 'draft')", $row ) );
+	}
+
+	public function test_if_modifier_chains_with_other_modifiers(): void {
+		$row = [ 'status' => 'Gepubliceerd' ];
+
+		$this->assertSame( 'publish', $this->pipeline->process( "status|lower|if('gepubliceerd', 'publish', 'draft')", $row ) );
+	}
+
+	public function test_if_modifier_with_column_ref_arg(): void {
+		$row = [ 'status' => 'gepubliceerd', 'expected' => 'gepubliceerd' ];
+
+		$this->assertSame( 'match', $this->pipeline->process( "status|if(expected, 'match', 'no-match')", $row ) );
+	}
+
 	// --- Ternary / conditional tests ---
 
 	public function test_ternary_equals_true_branch(): void {

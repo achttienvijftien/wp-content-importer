@@ -20,7 +20,7 @@
 - [x] add filters / actions so that plugins can hook into the import / mapping / etc. process
 - [x] altering content in mapping (using pipe modifiers — see plans/2026-03-07-pipe-modifiers-design.md)
 - [x] conditional mapping (ternary syntax in templates, e.g., {status == 'gepubliceerd' ? 'publish' : 'draft'})
-- [ ] `if` modifier shorthand for simple value mapping (e.g., {status|if('gepubliceerd', 'publish', 'draft')})
+- [x] `if` modifier shorthand for simple value mapping (e.g., {status|if('gepubliceerd', 'publish', 'draft')})
 - [ ] conditional operators: `starts with`, `ends with`, `has some` (contains)
 - [ ] conditional logical operators: `and`, `or`, `not`
 - [ ] column splitting (split a single source column into multiple values, e.g., "Full Name" into first/last)

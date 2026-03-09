@@ -176,5 +176,18 @@ class ModifierRegistry {
 			__( 'Truncate to length', 'wp-content-importer' ),
 			'{column|truncate(100)}'
 		);
+
+		$this->register(
+			'if',
+			function ( string $v, array $args ): string {
+				$match = $args[0] ?? '';
+				$then  = $args[1] ?? $v;
+				$else  = $args[2] ?? $v;
+
+				return $v === $match ? $then : $else;
+			},
+			__( 'Map value conditionally', 'wp-content-importer' ),
+			"{column|if('match', 'then', 'else')}"
+		);
 	}
 }

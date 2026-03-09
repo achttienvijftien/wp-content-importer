@@ -107,7 +107,7 @@ class ModifierRegistryTest extends TestCase {
 	public function test_register_defaults_registers_built_in_modifiers(): void {
 		$this->registry->register_defaults();
 
-		$expected = [ 'upper', 'lower', 'capitalize', 'trim', 'slug', 'date', 'number_format', 'replace', 'truncate', 'striptags' ];
+		$expected = [ 'upper', 'lower', 'capitalize', 'trim', 'slug', 'date', 'number_format', 'replace', 'truncate', 'striptags', 'if' ];
 		foreach ( $expected as $name ) {
 			$this->assertTrue( $this->registry->has( $name ), "Built-in modifier '{$name}' should be registered." );
 		}
