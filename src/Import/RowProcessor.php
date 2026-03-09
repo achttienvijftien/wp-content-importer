@@ -110,9 +110,16 @@ class RowProcessor {
 			$this->set_post_format( $post_id, $mapped );
 			$this->set_thumbnail( $post_id, $mapped );
 
+			$taxonomy_errors = [];
+			$this->set_taxonomy_terms( $post_id, $mapped, $taxonomy_errors );
+
 			do_action( 'wci_after_process_row', $post_id, $mapped, $row, $job );
 
-			$row->mark_done( $post_id );
+			if ( ! empty( $taxonomy_errors ) ) {
+				$row->mark_partial( $post_id, implode( '; ', $taxonomy_errors ) );
+			} else {
+				$row->mark_done( $post_id );
+			}
 		} catch ( \Throwable $e ) {
 			$row->mark_failed( $e->getMessage() );
 		}
@@ -383,8 +390,8 @@ class RowProcessor {
 	 */
 	private function set_meta_fields( int $post_id, array $mapped ): void {
 		foreach ( $mapped as $key => $entry ) {
-			// Skip core fields, ACF fields, and special fields.
-			if ( in_array( $key, self::CORE_FIELDS, true ) || in_array( $key, self::SPECIAL_FIELDS, true ) || str_starts_with( $key, 'field_' ) ) {
+			// Skip core fields, ACF fields, special fields, and taxonomy fields.
+			if ( in_array( $key, self::CORE_FIELDS, true ) || in_array( $key, self::SPECIAL_FIELDS, true ) || str_starts_with( $key, 'field_' ) || str_starts_with( $key, 'tax_' ) ) {
 				continue;
 			}
 
@@ -467,6 +474,97 @@ class RowProcessor {
 		if ( ! is_wp_error( $attachment_id ) ) {
 			set_post_thumbnail( $post_id, $attachment_id );
 		}
+	}
+
+	/**
+	 * Set taxonomy terms on the post for all tax_* mapped fields.
+	 *
+	 * @param int   $post_id Post ID.
+	 * @param array $mapped  Mapped field data.
+	 * @param array $errors  Collects error messages for unresolved terms (passed by reference).
+	 *
+	 * @return void
+	 */
+	private function set_taxonomy_terms( int $post_id, array $mapped, array &$errors ): void {
+		foreach ( $mapped as $key => $entry ) {
+			if ( ! str_starts_with( $key, 'tax_' ) ) {
+				continue;
+			}
+
+			if ( '' === $entry['value'] ) {
+				continue;
+			}
+
+			$taxonomy     = substr( $key, 4 );
+			$separator    = $entry['separator'] ?? ',';
+			$allow_create = ! empty( $entry['allow_create'] );
+			$raw_terms    = array_map( 'trim', explode( $separator, $entry['value'] ) );
+			$raw_terms    = array_filter( $raw_terms, fn( $t ) => '' !== $t );
+			$term_ids     = [];
+
+			foreach ( $raw_terms as $raw_term ) {
+				$term_id = $this->resolve_term( $raw_term, $taxonomy, $allow_create );
+
+				if ( null === $term_id ) {
+					$errors[] = sprintf( 'Term "%s" not found in %s', $raw_term, $taxonomy );
+					continue;
+				}
+
+				$term_ids[] = $term_id;
+			}
+
+			if ( ! empty( $term_ids ) ) {
+				wp_set_object_terms( $post_id, $term_ids, $taxonomy );
+			}
+		}
+	}
+
+	/**
+	 * Resolve a term value to a term ID.
+	 *
+	 * Looks up by ID (numeric), then slug, then name.
+	 * Optionally creates the term if not found.
+	 *
+	 * @param string $value        Term identifier (ID, slug, or name).
+	 * @param string $taxonomy     Taxonomy slug.
+	 * @param bool   $allow_create Whether to create the term if not found.
+	 *
+	 * @return int|null Resolved term ID, or null if not found.
+	 */
+	private function resolve_term( string $value, string $taxonomy, bool $allow_create ): ?int {
+		// Try by ID.
+		if ( is_numeric( $value ) ) {
+			$term = get_term( (int) $value, $taxonomy );
+
+			if ( $term && ! is_wp_error( $term ) ) {
+				return $term->term_id;
+			}
+		}
+
+		// Try by slug.
+		$term = get_term_by( 'slug', $value, $taxonomy );
+
+		if ( $term ) {
+			return $term->term_id;
+		}
+
+		// Try by name.
+		$term = get_term_by( 'name', $value, $taxonomy );
+
+		if ( $term ) {
+			return $term->term_id;
+		}
+
+		// Create if allowed.
+		if ( $allow_create ) {
+			$result = wp_insert_term( $value, $taxonomy );
+
+			if ( ! is_wp_error( $result ) ) {
+				return $result['term_id'];
+			}
+		}
+
+		return null;
 	}
 
 	/**

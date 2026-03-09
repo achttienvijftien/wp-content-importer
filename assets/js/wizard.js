@@ -394,9 +394,38 @@
 		return wrap;
 	}
 
-	function addMappingRow( fields, headers, preview, targetKey, templateValue ) {
+	function createTaxonomyOptions( config ) {
+		const wrap = document.createElement( 'div' );
+		wrap.classList.add( 'wci-taxonomy-options' );
+
+		const sepLabel = document.createElement( 'label' );
+		sepLabel.classList.add( 'wci-tax-option' );
+		sepLabel.textContent = 'Separator ';
+		const sepInput = document.createElement( 'input' );
+		sepInput.type = 'text';
+		sepInput.classList.add( 'wci-tax-separator' );
+		sepInput.value = config.separator || ',';
+		sepInput.size = 3;
+		sepLabel.appendChild( sepInput );
+		wrap.appendChild( sepLabel );
+
+		const createLabel = document.createElement( 'label' );
+		createLabel.classList.add( 'wci-tax-option' );
+		const createCheck = document.createElement( 'input' );
+		createCheck.type = 'checkbox';
+		createCheck.classList.add( 'wci-tax-allow-create' );
+		createCheck.checked = !! config.allow_create;
+		createLabel.appendChild( createCheck );
+		createLabel.append( ' Create missing terms' );
+		wrap.appendChild( createLabel );
+
+		return wrap;
+	}
+
+	function addMappingRow( fields, headers, preview, targetKey, templateValue, config ) {
 		const tbody = $( '#wci-mapping-table tbody' );
 		const tr = document.createElement( 'tr' );
+		config = config || {};
 
 		const tdTarget = document.createElement( 'td' );
 		const fieldWrap = createFieldSelect( fields, targetKey || '' );
@@ -407,6 +436,20 @@
 		tdTemplate.appendChild(
 			createTemplateInput( headers, preview, templateValue || '' )
 		);
+
+		// Taxonomy options container.
+		const taxOptions = createTaxonomyOptions( config );
+		const selectedOption = fieldWrap.querySelector( '.wci-target-select' ).selectedOptions[ 0 ];
+		const isTax = selectedOption && 'taxonomy' === selectedOption.dataset.type;
+		taxOptions.style.display = isTax ? '' : 'none';
+		tdTemplate.appendChild( taxOptions );
+
+		// Toggle taxonomy options when target field changes.
+		fieldWrap.querySelector( '.wci-target-select' ).addEventListener( 'change', function () {
+			const opt = this.selectedOptions[ 0 ];
+			taxOptions.style.display = opt && 'taxonomy' === opt.dataset.type ? '' : 'none';
+		} );
+
 		tr.appendChild( tdTemplate );
 
 		const tdRemove = document.createElement( 'td' );
@@ -431,7 +474,8 @@
 					headers,
 					preview,
 					targetKey,
-					config.template || ''
+					config.template || '',
+					config
 				);
 			} );
 		} else {
@@ -458,11 +502,22 @@
 			if ( ! template ) return;
 
 			const selectedOption = targetSelect.selectedOptions[ 0 ];
+			const fieldType = selectedOption.dataset.type || 'text';
 
-			mapping[ target ] = {
+			const entry = {
 				template: template,
-				type: selectedOption.dataset.type || 'text',
+				type: fieldType,
 			};
+
+			// Include taxonomy-specific options.
+			if ( 'taxonomy' === fieldType ) {
+				const sepInput = tr.querySelector( '.wci-tax-separator' );
+				const createCheck = tr.querySelector( '.wci-tax-allow-create' );
+				entry.separator = sepInput ? sepInput.value : ',';
+				entry.allow_create = createCheck ? createCheck.checked : false;
+			}
+
+			mapping[ target ] = entry;
 		} );
 
 		return mapping;

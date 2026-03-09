@@ -1,5 +1,6 @@
-- [ ] add taxonomy support (after CPT support is feature-complete)
-- [ ] add term mapping support to CPT import
+- [x] add taxonomy support (after CPT support is feature-complete)
+- [x] add term mapping support to CPT import
+- [ ] hierarchical taxonomy support (parent/child path syntax)
 - [ ] use wp-env for running tests
 - [ ] multi site support
 - [ ] CLI support
@@ -27,7 +28,7 @@
 - [ ] add filtering of rows to process
 - [ ] add option to remove rows in database after import (making reimporting impossible so that function should be disabled in
   that case)
-- [ ] featured image / media handling (set thumbnail from URL or file path)
+- [x] featured image / media handling (set thumbnail from URL or file path)
 - [x] post format support for CPTs that use post formats
 - [x] menu_order support for hierarchical CPTs
-- [ ] author name resolution
+- [ ] author name (full name) resolution

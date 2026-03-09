@@ -432,4 +432,155 @@ class RowProcessorTest extends TestCase {
 
 		$this->assertEmpty( get_post_thumbnail_id( $post_id ) );
 	}
+
+	public function test_set_taxonomy_terms_assigns_existing_term_by_name(): void {
+		$post_id = wp_insert_post( [ 'post_title' => 'Test', 'post_status' => 'publish' ] );
+		wp_insert_term( 'Sport', 'category' );
+
+		$method = new ReflectionMethod( RowProcessor::class, 'set_taxonomy_terms' );
+		$mapped = [
+			'tax_category' => [ 'value' => 'Sport', 'type' => 'taxonomy' ],
+		];
+		$errors = [];
+
+		$method->invokeArgs( $this->processor, [ $post_id, $mapped, &$errors ] );
+
+		$terms = wp_get_object_terms( $post_id, 'category', [ 'fields' => 'names' ] );
+		$this->assertContains( 'Sport', $terms );
+		$this->assertEmpty( $errors );
+	}
+
+	public function test_set_taxonomy_terms_assigns_term_by_slug(): void {
+		$post_id = wp_insert_post( [ 'post_title' => 'Test', 'post_status' => 'publish' ] );
+		wp_insert_term( 'West-Vlaanderen', 'category', [ 'slug' => 'west-vlaanderen' ] );
+
+		$method = new ReflectionMethod( RowProcessor::class, 'set_taxonomy_terms' );
+		$mapped = [
+			'tax_category' => [ 'value' => 'west-vlaanderen', 'type' => 'taxonomy' ],
+		];
+		$errors = [];
+
+		$method->invokeArgs( $this->processor, [ $post_id, $mapped, &$errors ] );
+
+		$terms = wp_get_object_terms( $post_id, 'category', [ 'fields' => 'slugs' ] );
+		$this->assertContains( 'west-vlaanderen', $terms );
+	}
+
+	public function test_set_taxonomy_terms_assigns_term_by_id(): void {
+		$post_id = wp_insert_post( [ 'post_title' => 'Test', 'post_status' => 'publish' ] );
+		$result  = wp_insert_term( 'Cultuur', 'category' );
+
+		$method = new ReflectionMethod( RowProcessor::class, 'set_taxonomy_terms' );
+		$mapped = [
+			'tax_category' => [ 'value' => (string) $result['term_id'], 'type' => 'taxonomy' ],
+		];
+		$errors = [];
+
+		$method->invokeArgs( $this->processor, [ $post_id, $mapped, &$errors ] );
+
+		$terms = wp_get_object_terms( $post_id, 'category', [ 'fields' => 'names' ] );
+		$this->assertContains( 'Cultuur', $terms );
+	}
+
+	public function test_set_taxonomy_terms_splits_by_comma_default(): void {
+		$post_id = wp_insert_post( [ 'post_title' => 'Test', 'post_status' => 'publish' ] );
+		wp_insert_term( 'Sport', 'category' );
+		wp_insert_term( 'Cultuur', 'category' );
+
+		$method = new ReflectionMethod( RowProcessor::class, 'set_taxonomy_terms' );
+		$mapped = [
+			'tax_category' => [ 'value' => 'Sport, Cultuur', 'type' => 'taxonomy' ],
+		];
+		$errors = [];
+
+		$method->invokeArgs( $this->processor, [ $post_id, $mapped, &$errors ] );
+
+		$terms = wp_get_object_terms( $post_id, 'category', [ 'fields' => 'names' ] );
+		$this->assertContains( 'Sport', $terms );
+		$this->assertContains( 'Cultuur', $terms );
+	}
+
+	public function test_set_taxonomy_terms_uses_custom_separator(): void {
+		$post_id = wp_insert_post( [ 'post_title' => 'Test', 'post_status' => 'publish' ] );
+		wp_insert_term( 'Sport', 'category' );
+		wp_insert_term( 'Cultuur', 'category' );
+
+		$method = new ReflectionMethod( RowProcessor::class, 'set_taxonomy_terms' );
+		$mapped = [
+			'tax_category' => [ 'value' => 'Sport|Cultuur', 'type' => 'taxonomy', 'separator' => '|' ],
+		];
+		$errors = [];
+
+		$method->invokeArgs( $this->processor, [ $post_id, $mapped, &$errors ] );
+
+		$terms = wp_get_object_terms( $post_id, 'category', [ 'fields' => 'names' ] );
+		$this->assertContains( 'Sport', $terms );
+		$this->assertContains( 'Cultuur', $terms );
+	}
+
+	public function test_set_taxonomy_terms_creates_when_allow_create(): void {
+		$post_id = wp_insert_post( [ 'post_title' => 'Test', 'post_status' => 'publish' ] );
+
+		$method = new ReflectionMethod( RowProcessor::class, 'set_taxonomy_terms' );
+		$mapped = [
+			'tax_category' => [ 'value' => 'Nieuw', 'type' => 'taxonomy', 'allow_create' => true ],
+		];
+		$errors = [];
+
+		$method->invokeArgs( $this->processor, [ $post_id, $mapped, &$errors ] );
+
+		$terms = wp_get_object_terms( $post_id, 'category', [ 'fields' => 'names' ] );
+		$this->assertContains( 'Nieuw', $terms );
+		$this->assertEmpty( $errors );
+	}
+
+	public function test_set_taxonomy_terms_skips_missing_when_no_create(): void {
+		$post_id = wp_insert_post( [ 'post_title' => 'Test', 'post_status' => 'publish' ] );
+
+		$method = new ReflectionMethod( RowProcessor::class, 'set_taxonomy_terms' );
+		$mapped = [
+			'tax_category' => [ 'value' => 'Onbekend', 'type' => 'taxonomy' ],
+		];
+		$errors = [];
+
+		$method->invokeArgs( $this->processor, [ $post_id, $mapped, &$errors ] );
+
+		$terms = wp_get_object_terms( $post_id, 'category', [ 'fields' => 'names' ] );
+		$this->assertNotContains( 'Onbekend', $terms );
+		$this->assertNotEmpty( $errors );
+	}
+
+	public function test_set_taxonomy_terms_skips_empty_value(): void {
+		register_taxonomy( 'wci_color', 'post', [ 'public' => true ] );
+		$post_id = wp_insert_post( [ 'post_title' => 'Test', 'post_status' => 'publish' ] );
+
+		$method = new ReflectionMethod( RowProcessor::class, 'set_taxonomy_terms' );
+		$mapped = [
+			'tax_wci_color' => [ 'value' => '', 'type' => 'taxonomy' ],
+		];
+		$errors = [];
+
+		$method->invokeArgs( $this->processor, [ $post_id, $mapped, &$errors ] );
+
+		$terms = wp_get_object_terms( $post_id, 'wci_color', [ 'fields' => 'names' ] );
+		$this->assertEmpty( $terms );
+	}
+
+	public function test_set_taxonomy_terms_partial_success_reports_errors(): void {
+		$post_id = wp_insert_post( [ 'post_title' => 'Test', 'post_status' => 'publish' ] );
+		wp_insert_term( 'Sport', 'category' );
+
+		$method = new ReflectionMethod( RowProcessor::class, 'set_taxonomy_terms' );
+		$mapped = [
+			'tax_category' => [ 'value' => 'Sport, Onbekend', 'type' => 'taxonomy' ],
+		];
+		$errors = [];
+
+		$method->invokeArgs( $this->processor, [ $post_id, $mapped, &$errors ] );
+
+		$terms = wp_get_object_terms( $post_id, 'category', [ 'fields' => 'names' ] );
+		$this->assertContains( 'Sport', $terms );
+		$this->assertNotContains( 'Onbekend', $terms );
+		$this->assertNotEmpty( $errors );
+	}
 }

@@ -43,4 +43,13 @@ class FieldResolverTest extends TestCase {
 		$resolver = new FieldResolver( [ $provider ] );
 		$resolver->resolve( 'page' );
 	}
+
+	public function test_create_includes_taxonomy_fields(): void {
+		$resolver = FieldResolver::create();
+		$fields   = $resolver->resolve( 'post' );
+		$keys     = array_column( $fields, 'key' );
+
+		$this->assertContains( 'tax_category', $keys );
+		$this->assertContains( 'tax_post_tag', $keys );
+	}
 }

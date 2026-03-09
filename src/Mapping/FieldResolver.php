@@ -11,6 +11,7 @@ use AchttienVijftien\WpContentImporter\FieldProvider\AcfFieldProvider;
 use AchttienVijftien\WpContentImporter\FieldProvider\CoreFieldProvider;
 use AchttienVijftien\WpContentImporter\FieldProvider\FieldProviderInterface;
 use AchttienVijftien\WpContentImporter\FieldProvider\RegisteredMetaProvider;
+use AchttienVijftien\WpContentImporter\FieldProvider\TaxonomyFieldProvider;
 
 /**
  * Resolves available fields for a post type by aggregating multiple field providers.
@@ -48,6 +49,8 @@ class FieldResolver {
 		if ( AcfFieldProvider::is_available() ) {
 			$providers[] = $acf_provider;
 		}
+
+		$providers[] = new TaxonomyFieldProvider();
 
 		// Exclude ACF-managed meta keys from the generic meta provider.
 		$exclude_prefixes = [ '_' ];

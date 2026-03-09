@@ -89,10 +89,10 @@ class CronHandler {
 		foreach ( $rows as $row ) {
 			$processor->process( $row, $job );
 
-			if ( 'done' === $row->status ) {
-				++$processed;
-			} else {
+			if ( 'failed' === $row->status ) {
 				++$failed;
+			} else {
+				++$processed;
 			}
 		}
 

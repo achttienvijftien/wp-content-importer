@@ -199,6 +199,34 @@ class ImportRow {
 	}
 
 	/**
+	 * Mark this row as partially successful.
+	 *
+	 * The post was created or updated, but some secondary operations
+	 * (e.g. taxonomy term assignment) did not fully succeed.
+	 *
+	 * @param int    $post_id The WordPress post ID that was created or updated.
+	 * @param string $error   Description of what partially failed.
+	 * @return void
+	 */
+	public function mark_partial( int $post_id, string $error ): void {
+		global $wpdb;
+
+		$wpdb->update(
+			Migrator::rows_table(),
+			[
+				'status'  => 'partial',
+				'post_id' => $post_id,
+				'error'   => $error,
+			],
+			[ 'id' => $this->id ]
+		);
+
+		$this->status  = 'partial';
+		$this->post_id = $post_id;
+		$this->error   = $error;
+	}
+
+	/**
 	 * Mark this row as failed with the given error message.
 	 *
 	 * @param string $error The error message describing the failure.
